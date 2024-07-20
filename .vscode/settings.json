@@ -1,0 +1,28 @@
+{
+  "editor.rulers": [100],
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "workbench.colorCustomizations": {
+    "activityBar.background": "#3f3f3f",
+    "activityBar.activeBackground": "#3f3f3f",
+    "activityBar.activeBorder": "#c27503",
+    "activityBar.foreground": "#e7e7e7",
+    "activityBar.inactiveForeground": "#e7e7e799",
+    "activityBarBadge.background": "#c27503",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "titleBar.activeBackground": "#262626",
+    "titleBar.inactiveBackground": "#26262699",
+    "titleBar.activeForeground": "#e7e7e7",
+    "titleBar.inactiveForeground": "#e7e7e799",
+    "statusBar.background": "#262626",
+    "statusBarItem.hoverBackground": "#3f3f3f",
+    "statusBar.foreground": "#e7e7e7",
+    "statusBar.border": "#262626",
+    "titleBar.border": "#262626"
+  },
+  "files.exclude": {
+    "**/index.js": true,
+    "**/.github": true
+  }
+}

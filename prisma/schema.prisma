@@ -1,0 +1,119 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String  @id @default(uuid())
+  email       String  @unique
+  name        String
+  password    String
+  is_verified Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  organisation_roles OrganisationRole[]
+  organisations      Organisation[]
+  user_token         UserToken[]
+
+  @@map("users")
+}
+
+enum TokenType {
+  VERIFY_EMAIL
+  RESET_PASSWORD
+}
+
+model UserToken {
+  id         String    @id @default(uuid())
+  user_id    String
+  token      String    @unique
+  tokenType  TokenType
+  expires_at DateTime  @default(dbgenerated("NOW() + INTERVAL '7 DAYS'"))
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("user_tokens")
+}
+
+model Organisation {
+  id   String @id @default(uuid())
+  name String
+
+  users              User[]
+  organisation_roles OrganisationRole[]
+  // timesheets         Timesheet[]
+  // projects           Project[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("organisations")
+}
+
+model OrganisationRole {
+  id     String @id @default(uuid())
+  org_id String
+  name   String
+
+  organisation Organisation @relation(fields: [org_id], references: [id])
+  users        User[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("organisation_roles")
+}
+
+// model Project {
+//   id          String @id @default(uuid())
+//   org_id      String
+//   name        String
+//   description String
+//   color       String
+
+//   organisation Organisation @relation(fields: [org_id], references: [id])
+//   timesheet    Timesheet[]
+//   users        User[]
+
+//   @@map("projects")
+// }
+
+// model Timesheet {
+//   id         String @id @default(uuid())
+//   org_id     String
+//   user_id    String
+//   project_id String
+
+//   user         User         @relation(fields: [user_id], references: [id])
+//   organisation Organisation @relation(fields: [org_id], references: [id])
+//   project      Project      @relation(fields: [project_id], references: [id])
+
+//   timesheet_props TimesheetProps[]
+
+//   @@map("timesheets")
+// }
+
+// model TimesheetProps {
+//   id           String @id @default(uuid())
+//   timesheet_id String
+
+//   target_date DateTime
+//   day_amount  Decimal
+//   description String
+
+//   timesheet Timesheet @relation(fields: [timesheet_id], references: [id])
+
+//   @@map("timesheet_props")
+// }

@@ -1,0 +1,27 @@
+export enum ErrorCode {
+  USER_NOT_FOUND = 1001,
+  USER_ALREADY_EXISTS = 1002,
+  INCORRECT_PASSWORD = 1003,
+  VERIFICATION_INVALID = 1004,
+  ROLE_NOT_FOUND = 1101,
+  UNPROCESSABLE_ENTITY = 2001,
+  INTERNAL_EXCEPTION = 3001,
+  UNAUTHORIZED = 4001,
+  UNVERIFIED = 4002,
+  EMAIL_NOT_SENT = 5001,
+}
+
+export enum StatusCode {
+  // Informational Status Codes
+  PROCESSING = 102,
+  // Success information Codes
+  OK = 200,
+  // Client error
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  NOT_FOUND = 404,
+  UNPROCESSABLE_CONTENT = 422,
+  // Server error
+  INTERNAL_SERVER_ERROR = 500,
+  BAD_GATEWAY = 502,
+}

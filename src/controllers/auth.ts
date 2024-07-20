@@ -1,0 +1,224 @@
+import { Request, Response } from 'express';
+import { prismaClient } from 'index';
+import {
+  LoginSchema,
+  SignupSchema,
+  BaseUserSchema,
+  UserTokenSchema,
+  ChangePasswordSchema,
+  ResetPasswordSchema,
+} from 'schema/users';
+import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
+import { ErrorMessage } from 'constants/api-messages';
+import { HttpException } from 'exceptions/http-exception';
+import { sendResetPasswordEmail, sendVerificationEmail } from 'utils/email';
+import { createSessionToken, createValidationToken } from 'utils/token';
+import { TokenType } from '@prisma/client';
+import { encryptPassword, isPasswordCorrect } from 'utils/password';
+
+const getUserByEmail = async (email: string) => {
+  const user = await prismaClient.user.findFirst({ where: { email } });
+
+  if (!user) {
+    throw new HttpException(
+      ErrorMessage.USER_NOT_FOUND,
+      ErrorCode.USER_NOT_FOUND,
+      StatusCode.NOT_FOUND,
+      null,
+    );
+  }
+
+  return user;
+};
+
+export const signup = async (req: Request, res: Response) => {
+  const { email, password, name } = SignupSchema.parse(req.body);
+
+  let user = await prismaClient.user.findFirst({ where: { email } });
+
+  if (user) {
+    throw new HttpException(
+      ErrorMessage.USER_ALREADY_EXISTS,
+      ErrorCode.USER_ALREADY_EXISTS,
+      StatusCode.BAD_REQUEST,
+      null,
+    );
+  }
+
+  const verificationToken = createValidationToken();
+
+  user = await prismaClient.user.create({
+    data: {
+      name,
+      email,
+      password: encryptPassword(password),
+      user_token: { create: { token: verificationToken, tokenType: TokenType.VERIFY_EMAIL } },
+    },
+  });
+
+  await sendVerificationEmail(
+    email,
+    name,
+    verificationToken,
+    `${req.protocol}://${req.get('host')}`,
+  );
+
+  const sessionToken = createSessionToken({ userId: user.id });
+
+  res.json({ user, token: sessionToken });
+};
+
+export const sendVerification = async (req: Request, res: Response) => {
+  BaseUserSchema.parse(req.body);
+
+  const { email } = req.body;
+
+  const user = await getUserByEmail(email);
+  const token = createValidationToken();
+
+  await prismaClient.userToken.create({
+    data: { token, user_id: user.id, tokenType: TokenType.VERIFY_EMAIL },
+  });
+
+  await sendVerificationEmail(user.email, user.name, token, `${req.protocol}://${req.get('host')}`);
+
+  res.json();
+};
+
+export const verifyUser = async (req: Request, res: Response) => {
+  UserTokenSchema.parse(req.params);
+
+  const { token } = req.params;
+
+  const userToken = await prismaClient.userToken.findFirst({
+    where: {
+      token,
+      tokenType: TokenType.VERIFY_EMAIL,
+      expires_at: { gt: new Date() },
+    },
+  });
+
+  if (!userToken) {
+    throw new HttpException(
+      ErrorMessage.VERIFICATION_CODE_INVALID,
+      ErrorCode.VERIFICATION_INVALID,
+      StatusCode.BAD_REQUEST,
+      null,
+    );
+  }
+
+  await prismaClient.user.update({
+    where: { id: userToken.user_id },
+    data: {
+      is_verified: true,
+      user_token: { deleteMany: { user_id: userToken.user_id, tokenType: TokenType.VERIFY_EMAIL } },
+    },
+  });
+
+  res.json();
+};
+
+export const login = async (req: Request, res: Response) => {
+  LoginSchema.parse(req.body);
+
+  const { email, password } = req.body;
+  const user = await getUserByEmail(email);
+
+  if (!isPasswordCorrect(password, user.password)) {
+    throw new HttpException(
+      ErrorMessage.INCORRECT_PASSWORD,
+      ErrorCode.INCORRECT_PASSWORD,
+      StatusCode.BAD_REQUEST,
+      null,
+    );
+  }
+
+  const token = createSessionToken({ userId: user.id });
+
+  res.json({ user, token });
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  BaseUserSchema.parse(req.body);
+
+  const { email } = req.body;
+  const user = await getUserByEmail(email);
+
+  const token = createValidationToken();
+
+  await prismaClient.userToken.create({
+    data: { token, user_id: user.id, tokenType: TokenType.RESET_PASSWORD },
+  });
+
+  await sendResetPasswordEmail(
+    user.email,
+    user.name,
+    token,
+    `${req.protocol}://${req.get('host')}`,
+  );
+
+  res.json();
+};
+
+export const verifyResetPassword = async (req: Request, res: Response) => {
+  UserTokenSchema.parse(req.params);
+  ResetPasswordSchema.parse(req.body);
+
+  const { token } = req.params;
+
+  const userToken = await prismaClient.userToken.findFirst({
+    where: {
+      token,
+      tokenType: TokenType.RESET_PASSWORD,
+      expires_at: { gt: new Date() },
+    },
+  });
+
+  if (!userToken) {
+    throw new HttpException(
+      ErrorMessage.VERIFICATION_CODE_INVALID,
+      ErrorCode.VERIFICATION_INVALID,
+      StatusCode.BAD_REQUEST,
+      null,
+    );
+  }
+
+  await prismaClient.user.update({
+    where: { id: userToken.user_id },
+    data: {
+      password: encryptPassword(req.body.new_password),
+      user_token: {
+        deleteMany: { user_id: userToken.user_id, tokenType: TokenType.RESET_PASSWORD },
+      },
+    },
+  });
+
+  res.json();
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+  ChangePasswordSchema.parse(req.body);
+
+  const { old_password, new_password } = req.body;
+  const user = req.user!;
+
+  if (!isPasswordCorrect(old_password, user.password)) {
+    throw new HttpException(
+      ErrorMessage.INCORRECT_PASSWORD,
+      ErrorCode.INCORRECT_PASSWORD,
+      StatusCode.BAD_REQUEST,
+      null,
+    );
+  }
+
+  await prismaClient.user.update({
+    where: { id: user.id },
+    data: { password: encryptPassword(new_password) },
+  });
+
+  res.json();
+};
+
+export const me = async (req: Request, res: Response) => {
+  res.json(req.user);
+};
