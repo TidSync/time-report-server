@@ -8,7 +8,11 @@ export enum ErrorMessage {
   INCORRECT_PASSWORD = 'Incorrect password',
   EMAIL_NOT_SENT = 'Email not sent',
   UNAUTHORIZED = 'Unauthorized',
+  //organisation
+  ORGANISATION_NOT_FOUND = 'Organisation not found',
+  USER_NOT_ORGANISATION = 'User is not part of this organisation',
   // Internal server error
   UNPROCESSABLE_ENTITY = 'Unprocessable entity',
+  DATABASE_PROCESS_ERROR = 'Could not execute operation on database',
   SOMETHING_WENT_WRONG = 'Something went wrong.',
 }

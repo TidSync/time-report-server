@@ -23,9 +23,10 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  organisation_roles OrganisationRole[]
-  organisations      Organisation[]
+  organisation_user  OrganisationUser[]
   user_token         UserToken[]
+  projects           Project[]
+  timesheets         Timesheet[]
 
   @@map("users")
 }
@@ -47,73 +48,82 @@ model UserToken {
   @@map("user_tokens")
 }
 
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model OrganisationUser {
+  user_id         String
+  organisation_id String
+
+  invitation_status InvitationStatus @default(PENDING)
+  user_role UserRole @default(USER)
+
+  user         User         @relation(fields: [user_id], references: [id])
+  organisation Organisation @relation(fields: [organisation_id], references: [id])
+
+  @@unique([user_id, organisation_id])
+  @@map("organisation_users")
+}
+
 model Organisation {
   id   String @id @default(uuid())
   name String
 
-  users              User[]
-  organisation_roles OrganisationRole[]
-  // timesheets         Timesheet[]
-  // projects           Project[]
+  organisation_user  OrganisationUser[]
+  timesheets         Timesheet[]
+  projects           Project[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@map("organisations")
+  @@map("organisation")
 }
 
-model OrganisationRole {
-  id     String @id @default(uuid())
-  org_id String
-  name   String
+model Project {
+  id          String @id @default(uuid())
+  org_id      String
+  name        String
+  description String
+  color       String
 
   organisation Organisation @relation(fields: [org_id], references: [id])
+  timesheet    Timesheet[]
   users        User[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@map("organisation_roles")
+  @@map("projects")
 }
 
-// model Project {
-//   id          String @id @default(uuid())
-//   org_id      String
-//   name        String
-//   description String
-//   color       String
+model Timesheet {
+  id         String @id @default(uuid())
+  org_id     String
+  user_id    String
+  project_id String
 
-//   organisation Organisation @relation(fields: [org_id], references: [id])
-//   timesheet    Timesheet[]
-//   users        User[]
+  user         User         @relation(fields: [user_id], references: [id])
+  organisation Organisation @relation(fields: [org_id], references: [id])
+  project      Project      @relation(fields: [project_id], references: [id])
 
-//   @@map("projects")
-// }
+  timesheet_props TimesheetProps[]
 
-// model Timesheet {
-//   id         String @id @default(uuid())
-//   org_id     String
-//   user_id    String
-//   project_id String
+  @@map("timesheets")
+}
 
-//   user         User         @relation(fields: [user_id], references: [id])
-//   organisation Organisation @relation(fields: [org_id], references: [id])
-//   project      Project      @relation(fields: [project_id], references: [id])
+model TimesheetProps {
+  id           String @id @default(uuid())
+  timesheet_id String
 
-//   timesheet_props TimesheetProps[]
+  target_date DateTime
+  day_amount  Decimal
+  description String
 
-//   @@map("timesheets")
-// }
+  timesheet Timesheet @relation(fields: [timesheet_id], references: [id])
 
-// model TimesheetProps {
-//   id           String @id @default(uuid())
-//   timesheet_id String
-
-//   target_date DateTime
-//   day_amount  Decimal
-//   description String
-
-//   timesheet Timesheet @relation(fields: [timesheet_id], references: [id])
-
-//   @@map("timesheet_props")
-// }
+  @@map("timesheet_props")
+}

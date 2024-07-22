@@ -64,3 +64,19 @@ export const sendVerificationEmail = async (
 
   await sendEmail(to, subject, text);
 };
+
+export const sendOrganisationInvitation = async (
+  userEmail: string,
+  organisationName: string,
+  organisationId: string,
+  userId: string,
+  hostUrl: string,
+) => {
+  const to = userEmail;
+  const subject = 'Account Verification Link';
+  const text = `Hello, please join the organisation ${organisationName} 
+                      by clicking on this link:
+                      ${hostUrl}/api/user/accept-organisation-invitation/${organisationId}/${userId}`;
+
+  await sendEmail(to, subject, text);
+};

@@ -5,6 +5,7 @@ import {
   resetPassword,
   sendVerification,
   signup,
+  verifyResetPassword,
   verifyUser,
 } from 'controllers/auth';
 import { errorHandler } from 'error-handler';
@@ -18,7 +19,7 @@ authRoutes.post('/login', errorHandler(login));
 authRoutes.post('/send-verification', errorHandler(sendVerification));
 authRoutes.get('/verify-user/:token', errorHandler(verifyUser));
 authRoutes.post('/reset-password', errorHandler(resetPassword));
-authRoutes.post('/verify-reset-password/:token', errorHandler(resetPassword));
+authRoutes.post('/verify-reset-password/:token', errorHandler(verifyResetPassword));
 authRoutes.post('/change-password', [authMiddleware], errorHandler(changePassword));
 authRoutes.get('/me', [authMiddleware], errorHandler(me));
 
