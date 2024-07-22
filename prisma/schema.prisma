@@ -83,7 +83,7 @@ model Organisation {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  @@map("organisation")
+  @@map("organisations")
 }
 
 model Project {

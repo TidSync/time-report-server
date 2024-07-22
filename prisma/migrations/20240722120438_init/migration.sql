@@ -1,47 +1,35 @@
-/*
-  Warnings:
+-- CreateEnum
+CREATE TYPE "TokenType" AS ENUM ('VERIFY_EMAIL', 'RESET_PASSWORD');
 
-  - You are about to drop the `_OrganisationRoleToUser` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `_OrganisationToUser` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `organisation_roles` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `organisations` table. If the table is not empty, all the data it contains will be lost.
-
-*/
 -- CreateEnum
 CREATE TYPE "InvitationStatus" AS ENUM ('PENDING', 'ACCEPTED');
 
 -- CreateEnum
 CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
 
--- DropForeignKey
-ALTER TABLE "_OrganisationRoleToUser" DROP CONSTRAINT "_OrganisationRoleToUser_A_fkey";
+-- CreateTable
+CREATE TABLE "users" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "is_verified" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
 
--- DropForeignKey
-ALTER TABLE "_OrganisationRoleToUser" DROP CONSTRAINT "_OrganisationRoleToUser_B_fkey";
+    CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "_OrganisationToUser" DROP CONSTRAINT "_OrganisationToUser_A_fkey";
+-- CreateTable
+CREATE TABLE "user_tokens" (
+    "id" TEXT NOT NULL,
+    "user_id" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "tokenType" "TokenType" NOT NULL,
+    "expires_at" TIMESTAMP(3) NOT NULL DEFAULT NOW() + INTERVAL '7 DAYS',
 
--- DropForeignKey
-ALTER TABLE "_OrganisationToUser" DROP CONSTRAINT "_OrganisationToUser_B_fkey";
-
--- DropForeignKey
-ALTER TABLE "organisation_roles" DROP CONSTRAINT "organisation_roles_org_id_fkey";
-
--- AlterTable
-ALTER TABLE "user_tokens" ALTER COLUMN "expires_at" SET DEFAULT NOW() + INTERVAL '7 DAYS';
-
--- DropTable
-DROP TABLE "_OrganisationRoleToUser";
-
--- DropTable
-DROP TABLE "_OrganisationToUser";
-
--- DropTable
-DROP TABLE "organisation_roles";
-
--- DropTable
-DROP TABLE "organisations";
+    CONSTRAINT "user_tokens_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "organisation_users" (
@@ -52,13 +40,13 @@ CREATE TABLE "organisation_users" (
 );
 
 -- CreateTable
-CREATE TABLE "organisation" (
+CREATE TABLE "organisations" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "organisation_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "organisations_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -100,6 +88,12 @@ CREATE TABLE "_ProjectToUser" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_tokens_token_key" ON "user_tokens"("token");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "organisation_users_user_id_organisation_id_key" ON "organisation_users"("user_id", "organisation_id");
 
 -- CreateIndex
@@ -109,19 +103,22 @@ CREATE UNIQUE INDEX "_ProjectToUser_AB_unique" ON "_ProjectToUser"("A", "B");
 CREATE INDEX "_ProjectToUser_B_index" ON "_ProjectToUser"("B");
 
 -- AddForeignKey
+ALTER TABLE "user_tokens" ADD CONSTRAINT "user_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "projects" ADD CONSTRAINT "projects_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "organisation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "projects" ADD CONSTRAINT "projects_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "organisation"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
