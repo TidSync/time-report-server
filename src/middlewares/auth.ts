@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { OrganisationUser, User, UserRole } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
@@ -9,7 +9,7 @@ import { JWT_SECRET } from 'secrets';
 
 declare module 'express' {
   interface Request {
-    user?: User;
+    user?: User & { organisation_user: OrganisationUser[] };
   }
 }
 
@@ -23,7 +23,10 @@ export const authMiddleware = async (req: Request, _res: Response, next: NextFun
 
     const payload = jwt.verify(token, JWT_SECRET) as any;
 
-    const user = await prismaClient.user.findFirst({ where: { id: payload.userId } });
+    const user = await prismaClient.user.findFirst({
+      where: { id: payload.userId },
+      include: { organisation_user: true },
+    });
 
     if (!user) {
       throw new Error();
@@ -32,6 +35,7 @@ export const authMiddleware = async (req: Request, _res: Response, next: NextFun
     }
 
     req.user = user;
+
     next();
   } catch (error: any) {
     if (error.message === ErrorMessage.USER_NOT_VERIFIED) {

@@ -7,7 +7,7 @@ import {
   UserTokenSchema,
   ChangePasswordSchema,
   ResetPasswordSchema,
-} from 'schema/users';
+} from 'schema/auth';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { ErrorMessage } from 'constants/api-messages';
 import { HttpException } from 'exceptions/http-exception';
@@ -15,21 +15,7 @@ import { sendResetPasswordEmail, sendVerificationEmail } from 'utils/email';
 import { createSessionToken, createValidationToken } from 'utils/token';
 import { TokenType } from '@prisma/client';
 import { encryptPassword, isPasswordCorrect } from 'utils/password';
-
-const getUserByEmail = async (email: string) => {
-  const user = await prismaClient.user.findFirst({ where: { email } });
-
-  if (!user) {
-    throw new HttpException(
-      ErrorMessage.USER_NOT_FOUND,
-      ErrorCode.USER_NOT_FOUND,
-      StatusCode.NOT_FOUND,
-      null,
-    );
-  }
-
-  return user;
-};
+import { createNewUser, getUserByEmail } from 'query/user';
 
 export const signup = async (req: Request, res: Response) => {
   const { email, password, name } = SignupSchema.parse(req.body);
@@ -45,23 +31,7 @@ export const signup = async (req: Request, res: Response) => {
     );
   }
 
-  const verificationToken = createValidationToken();
-
-  user = await prismaClient.user.create({
-    data: {
-      name,
-      email,
-      password: encryptPassword(password),
-      user_token: { create: { token: verificationToken, tokenType: TokenType.VERIFY_EMAIL } },
-    },
-  });
-
-  await sendVerificationEmail(
-    email,
-    name,
-    verificationToken,
-    `${req.protocol}://${req.get('host')}`,
-  );
+  user = await createNewUser(email, name, password, `${req.protocol}://${req.get('host')}`);
 
   const sessionToken = createSessionToken({ userId: user.id });
 
