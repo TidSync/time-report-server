@@ -17,3 +17,16 @@ export const getOrganisationById = async (id: string) => {
 
   return organisation;
 };
+
+export const getOrganisationByProjectId = async (id: string) => {
+  const project = await prismaClient.project.findFirst({
+    where: { id },
+    include: { organisation: true },
+  });
+
+  if (project) {
+    return project.organisation;
+  }
+
+  return null;
+};

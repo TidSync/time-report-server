@@ -1,4 +1,4 @@
-import { OrganisationUser, User, UserRole } from '@prisma/client';
+import { OrganisationUser, User } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
@@ -13,7 +13,7 @@ declare module 'express' {
   }
 }
 
-export const authMiddleware = async (req: Request, _res: Response, next: NextFunction) => {
+export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization;
 

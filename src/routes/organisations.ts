@@ -1,4 +1,11 @@
-import { createOrganisation, getOrganisation, updateOrganisation } from 'controllers/organisations';
+import {
+  createOrganisation,
+  getOrganisation,
+  updateOrganisation,
+  assignUserToRole,
+  confirmOrganisationInvitation,
+  inviteUserToOrganisation,
+} from 'controllers/organisations';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
 import { authMiddleware } from 'middlewares/auth';
@@ -17,5 +24,17 @@ organisationRoutes.put(
   [authMiddleware, organisationAdminMiddleware],
   errorHandler(updateOrganisation),
 );
+
+organisationRoutes.post(
+  '/assign-role',
+  [authMiddleware, organisationAdminMiddleware],
+  errorHandler(assignUserToRole),
+);
+organisationRoutes.post(
+  '/invite-user',
+  [authMiddleware, organisationAdminMiddleware],
+  errorHandler(inviteUserToOrganisation),
+);
+organisationRoutes.post('/confirm-user', errorHandler(confirmOrganisationInvitation));
 
 export default organisationRoutes;
