@@ -11,8 +11,12 @@ export enum ErrorMessage {
   //organisation
   ORGANISATION_NOT_FOUND = 'Organisation not found',
   USER_NOT_ORGANISATION = 'User is not part of this organisation',
+  //project
+  PROJECT_NOT_FOUND = 'Project not found',
   // Internal server error
   UNPROCESSABLE_ENTITY = 'Unprocessable entity',
+  UPDATE_DATA_MISSING = 'No data to update',
+  DATABASE_ENTRY_EXISTS = 'Entry already exists',
   DATABASE_PROCESS_ERROR = 'Could not execute operation on database',
   SOMETHING_WENT_WRONG = 'Something went wrong.',
 }

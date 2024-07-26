@@ -23,10 +23,10 @@ model User {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
-  organisation_user  OrganisationUser[]
-  user_token         UserToken[]
-  projects           Project[]
-  timesheets         Timesheet[]
+  organisation_user OrganisationUser[]
+  user_token        UserToken[]
+  projects          Project[]
+  timesheets        Timesheet[]
 
   @@map("users")
 }
@@ -55,6 +55,7 @@ enum InvitationStatus {
 
 enum UserRole {
   USER
+  PROJECT_MANAGER
   ADMIN
 }
 
@@ -63,7 +64,7 @@ model OrganisationUser {
   organisation_id String
 
   invitation_status InvitationStatus @default(PENDING)
-  user_role UserRole @default(USER)
+  user_role         UserRole         @default(USER)
 
   user         User         @relation(fields: [user_id], references: [id])
   organisation Organisation @relation(fields: [organisation_id], references: [id])
@@ -76,9 +77,8 @@ model Organisation {
   id   String @id @default(uuid())
   name String
 
-  organisation_user  OrganisationUser[]
-  timesheets         Timesheet[]
-  projects           Project[]
+  organisation_user OrganisationUser[]
+  projects          Project[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -87,30 +87,34 @@ model Organisation {
 }
 
 model Project {
-  id          String @id @default(uuid())
-  org_id      String
-  name        String
-  description String
-  color       String
+  id              String @id @default(uuid())
+  organisation_id String
+  name            String
+  description     String @db.Text
+  color           String
 
-  organisation Organisation @relation(fields: [org_id], references: [id])
+  organisation Organisation @relation(fields: [organisation_id], references: [id])
   timesheet    Timesheet[]
   users        User[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("projects")
 }
 
 model Timesheet {
   id         String @id @default(uuid())
-  org_id     String
   user_id    String
   project_id String
 
-  user         User         @relation(fields: [user_id], references: [id])
-  organisation Organisation @relation(fields: [org_id], references: [id])
-  project      Project      @relation(fields: [project_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id])
+  project Project @relation(fields: [project_id], references: [id])
 
   timesheet_props TimesheetProps[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("timesheets")
 }
@@ -124,6 +128,9 @@ model TimesheetProps {
   description String
 
   timesheet Timesheet @relation(fields: [timesheet_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("timesheet_props")
 }

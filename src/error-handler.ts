@@ -22,6 +22,13 @@ const handlePrismaErrors = (error: Prisma.PrismaClientKnownRequestError) => {
       StatusCode.UNPROCESSABLE_CONTENT,
       error,
     );
+  } else if (error.code === 'P2002') {
+    return new HttpException(
+      ErrorMessage.DATABASE_ENTRY_EXISTS,
+      ErrorCode.DATABASE_UPDATE,
+      StatusCode.UNPROCESSABLE_CONTENT,
+      error,
+    );
   }
 
   return new HttpException(

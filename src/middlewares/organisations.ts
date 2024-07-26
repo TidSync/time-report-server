@@ -2,20 +2,37 @@ import { Request, Response, NextFunction } from 'express';
 import { HttpException } from 'exceptions/http-exception';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
-import { InvitationStatus, UserRole } from '@prisma/client';
+import { InvitationStatus, OrganisationUser, UserRole } from '@prisma/client';
 
-export const organisationUserMiddleware = (req: Request, _res: Response, next: NextFunction) => {
+declare module 'express' {
+  interface Request {
+    orgUser?: OrganisationUser;
+  }
+}
+
+const runMiddlewareWithFilter = (
+  req: Request,
+  next: NextFunction,
+  filter: (orgUser: OrganisationUser, organisationId: string) => boolean,
+) => {
   try {
     const organisationId = req.body.organisation_id || req.params.organisation_id;
-    const isOrgUser = req.user!.organisation_user.find(
-      (orgUser) => orgUser.organisation_id === organisationId,
+
+    if (!organisationId) {
+      throw new Error();
+    }
+
+    const orgUser = req.user!.organisation_user.find((organisationUser) =>
+      filter(organisationUser, organisationId),
     );
 
-    if (!isOrgUser) {
+    if (!orgUser) {
       throw new Error();
-    } else if (isOrgUser.invitation_status === InvitationStatus.PENDING) {
+    } else if (orgUser.invitation_status === InvitationStatus.PENDING) {
       throw new Error(ErrorMessage.USER_NOT_VERIFIED);
     }
+
+    req.orgUser = orgUser;
 
     next();
   } catch (error: any) {
@@ -25,7 +42,7 @@ export const organisationUserMiddleware = (req: Request, _res: Response, next: N
           ErrorMessage.USER_NOT_VERIFIED,
           ErrorCode.ORGANISATION_UNVERIFIED,
           StatusCode.UNAUTHORIZED,
-          null,
+          error,
         ),
       );
     }
@@ -35,50 +52,34 @@ export const organisationUserMiddleware = (req: Request, _res: Response, next: N
         ErrorMessage.UNAUTHORIZED,
         ErrorCode.ORGANISATION_UNAUTHORIZED,
         StatusCode.UNAUTHORIZED,
-        null,
+        error,
       ),
     );
   }
 };
 
-export const organisationAdminMiddleware = async (
+export const organisationUserMiddleware = (req: Request, _res: Response, next: NextFunction) => {
+  runMiddlewareWithFilter(req, next, (orgUser, orgId) => orgUser.organisation_id === orgId);
+};
+
+export const organisationProjectManagerMiddleware = (
   req: Request,
   _res: Response,
   next: NextFunction,
 ) => {
-  try {
-    const organisationId = req.body.organisation_id || req.params.organisation_id;
-    const isOrgAdmin = req.user!.organisation_user.find(
-      (orgUser) =>
-        orgUser.user_role === UserRole.ADMIN && orgUser.organisation_id === organisationId,
-    );
+  runMiddlewareWithFilter(
+    req,
+    next,
+    (orgUser, orgId) =>
+      (orgUser.user_role === UserRole.PROJECT_MANAGER || orgUser.user_role === UserRole.ADMIN) &&
+      orgUser.organisation_id === orgId,
+  );
+};
 
-    if (!isOrgAdmin) {
-      throw new Error();
-    } else if (isOrgAdmin.invitation_status === InvitationStatus.PENDING) {
-      throw new Error(ErrorMessage.USER_NOT_VERIFIED);
-    }
-
-    next();
-  } catch (error: any) {
-    if (error.message === ErrorMessage.USER_NOT_VERIFIED) {
-      return next(
-        new HttpException(
-          ErrorMessage.USER_NOT_VERIFIED,
-          ErrorCode.ORGANISATION_UNVERIFIED,
-          StatusCode.UNAUTHORIZED,
-          null,
-        ),
-      );
-    }
-
-    next(
-      new HttpException(
-        ErrorMessage.UNAUTHORIZED,
-        ErrorCode.ORGANISATION_UNAUTHORIZED,
-        StatusCode.UNAUTHORIZED,
-        null,
-      ),
-    );
-  }
+export const organisationAdminMiddleware = (req: Request, _res: Response, next: NextFunction) => {
+  runMiddlewareWithFilter(
+    req,
+    next,
+    (orgUser, orgId) => orgUser.user_role === UserRole.ADMIN && orgUser.organisation_id === orgId,
+  );
 };

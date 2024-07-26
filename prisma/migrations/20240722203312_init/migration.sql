@@ -5,7 +5,7 @@ CREATE TYPE "TokenType" AS ENUM ('VERIFY_EMAIL', 'RESET_PASSWORD');
 CREATE TYPE "InvitationStatus" AS ENUM ('PENDING', 'ACCEPTED');
 
 -- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('USER', 'ADMIN');
+CREATE TYPE "UserRole" AS ENUM ('USER', 'PROJECT_MANAGER', 'ADMIN');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -52,7 +52,7 @@ CREATE TABLE "organisations" (
 -- CreateTable
 CREATE TABLE "projects" (
     "id" TEXT NOT NULL,
-    "org_id" TEXT NOT NULL,
+    "organisation_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "color" TEXT NOT NULL,
@@ -63,7 +63,6 @@ CREATE TABLE "projects" (
 -- CreateTable
 CREATE TABLE "timesheets" (
     "id" TEXT NOT NULL,
-    "org_id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "project_id" TEXT NOT NULL,
 
@@ -112,13 +111,10 @@ ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_user_id_fkey
 ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "projects" ADD CONSTRAINT "projects_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "projects" ADD CONSTRAINT "projects_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_org_id_fkey" FOREIGN KEY ("org_id") REFERENCES "organisations"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "timesheets" ADD CONSTRAINT "timesheets_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
