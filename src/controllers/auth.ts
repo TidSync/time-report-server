@@ -13,9 +13,12 @@ import { ErrorMessage } from 'constants/api-messages';
 import { HttpException } from 'exceptions/http-exception';
 import { sendResetPasswordEmail, sendVerificationEmail } from 'utils/email';
 import { createSessionToken, createValidationToken } from 'utils/token';
-import { TokenType } from '@prisma/client';
+import { TokenType, UserRole } from '@prisma/client';
 import { encryptPassword, isPasswordCorrect } from 'utils/password';
 import { createNewUser, getUserByEmail } from 'query/user';
+import Chance from 'chance';
+
+const chance = new Chance();
 
 export const signup = async (req: Request, res: Response) => {
   const { email, password, name } = SignupSchema.parse(req.body);
@@ -191,4 +194,31 @@ export const changePassword = async (req: Request, res: Response) => {
 
 export const me = async (req: Request, res: Response) => {
   res.json(req.user);
+};
+
+export const deleteMe = async (req: Request, res: Response) => {
+  const user_id = req.user!.id;
+
+  await prismaClient.$transaction(async () => {
+    await Promise.all([
+      await prismaClient.user.update({
+        where: { id: user_id },
+        data: {
+          email: chance.email({ domain: '@tidsync.com' }),
+          password: encryptPassword(chance.animal()),
+          name: 'Deleted User',
+          is_verified: false,
+        },
+      }),
+      await prismaClient.organisation.deleteMany({
+        where: {
+          organisation_user: { some: { user_id: req.user!.id, user_role: UserRole.OWNER } },
+        },
+      }),
+    ]);
+
+    return true;
+  });
+
+  res.json();
 };

@@ -1,21 +1,13 @@
 import { deleteTimesheets, getTimesheets, modifyTimesheets } from 'controllers/timesheets';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
-import { authMiddleware } from 'middlewares/auth';
-import { projectUserMiddleware } from 'middlewares/projects';
+import { projectUserMidd, timesheetCreatorMidd } from 'middlewares/projects';
 
 const timesheetRoutes: Router = Router();
+const cb = errorHandler;
 
-timesheetRoutes.get(
-  '/:project_id',
-  [authMiddleware, projectUserMiddleware],
-  errorHandler(getTimesheets),
-);
-timesheetRoutes.post('/', [authMiddleware, projectUserMiddleware], errorHandler(modifyTimesheets));
-timesheetRoutes.delete(
-  '/',
-  [authMiddleware, projectUserMiddleware],
-  errorHandler(deleteTimesheets),
-);
+timesheetRoutes.get('/:project_id', [projectUserMidd], cb(getTimesheets));
+timesheetRoutes.post('/', [timesheetCreatorMidd], cb(modifyTimesheets));
+timesheetRoutes.delete('/', [projectUserMidd], cb(deleteTimesheets));
 
 export default timesheetRoutes;

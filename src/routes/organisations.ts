@@ -6,41 +6,25 @@ import {
   confirmOrganisationInvitation,
   inviteUserToOrganisation,
   getOrganisationUsers,
+  removeOrganisationUser,
+  removeOrganisation,
 } from 'controllers/organisations';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
-import { authMiddleware } from 'middlewares/auth';
-import { organisationAdminMiddleware, organisationUserMiddleware } from 'middlewares/organisations';
+import { orgAdminMidd, orgOwnerMidd, orgUserMidd } from 'middlewares/organisations';
 
 const organisationRoutes: Router = Router();
+const cb = errorHandler;
 
-organisationRoutes.post('/', [authMiddleware], errorHandler(createOrganisation));
-organisationRoutes.get(
-  '/:organisation_id',
-  [authMiddleware, organisationUserMiddleware],
-  errorHandler(getOrganisation),
-);
-organisationRoutes.put(
-  '/',
-  [authMiddleware, organisationAdminMiddleware],
-  errorHandler(updateOrganisation),
-);
+organisationRoutes.post('/', cb(createOrganisation));
+organisationRoutes.get('/:organisation_id', [orgUserMidd], cb(getOrganisation));
+organisationRoutes.put('/', [orgOwnerMidd], cb(updateOrganisation));
+organisationRoutes.delete('/', [orgOwnerMidd], cb(removeOrganisation));
 
-organisationRoutes.post(
-  '/assign-role',
-  [authMiddleware, organisationAdminMiddleware],
-  errorHandler(assignUserToRole),
-);
-organisationRoutes.post(
-  '/invite-user',
-  [authMiddleware, organisationAdminMiddleware],
-  errorHandler(inviteUserToOrganisation),
-);
-organisationRoutes.post('/confirm-user', errorHandler(confirmOrganisationInvitation));
-organisationRoutes.get(
-  '/users/:organisation_id',
-  [authMiddleware, organisationAdminMiddleware],
-  errorHandler(getOrganisationUsers),
-);
+organisationRoutes.put('/users', [orgAdminMidd], cb(assignUserToRole));
+organisationRoutes.post('/users', [orgAdminMidd], cb(inviteUserToOrganisation));
+organisationRoutes.delete('/users', [orgAdminMidd], cb(removeOrganisationUser));
+organisationRoutes.post('/users/confirm', cb(confirmOrganisationInvitation));
+organisationRoutes.get('/users/:organisation_id', [orgAdminMidd], cb(getOrganisationUsers));
 
 export default organisationRoutes;

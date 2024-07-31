@@ -10,6 +10,7 @@ import {
   CreateProjectSchema,
   DeleteProjectSchema,
   ListProjectsSchema,
+  RemoveProjectUserSchema,
   UpdateProjectSchema,
 } from 'schema/projects';
 
@@ -24,7 +25,7 @@ export const createProject = async (req: Request, res: Response) => {
 };
 
 export const getProject = async (req: Request, res: Response) => {
-  res.json({ project: req.project, organisation: req.organisation });
+  res.json(req.project);
 };
 
 export const removeProject = async (req: Request, res: Response) => {
@@ -109,5 +110,16 @@ export const getProjectUsers = async (req: Request, res: Response) => {
   res.json(users);
 };
 
-// TODO
-export const removeProjectUser = async (req: Request, res: Response) => {};
+export const removeProjectUser = async (req: Request, res: Response) => {
+  const validatedBody = RemoveProjectUserSchema.parse(req.body);
+
+  await prismaClient.project.update({
+    where: { id: validatedBody.project_id },
+    data: {
+      users: { disconnect: { id: validatedBody.user_id } },
+      timesheet: { deleteMany: { user_id: validatedBody.user_id } },
+    },
+  });
+
+  res.json();
+};

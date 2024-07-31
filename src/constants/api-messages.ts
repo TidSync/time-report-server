@@ -11,6 +11,7 @@ export enum ErrorMessage {
   //organisation
   ORGANISATION_NOT_FOUND = 'Organisation not found',
   USER_NOT_ORGANISATION = 'User is not part of this organisation',
+  CANNOT_DELETE_OWNER = "Owner can't be deleted within the organisation",
   //project
   PROJECT_NOT_FOUND = 'Project not found',
   // Internal server error

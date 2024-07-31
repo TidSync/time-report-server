@@ -6,49 +6,23 @@ import {
   getProjectUsers,
   listProjects,
   updateProject,
+  removeProjectUser,
 } from 'controllers/projects';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
-import { authMiddleware } from 'middlewares/auth';
-import {
-  organisationAdminMiddleware,
-  organisationProjectManagerMiddleware,
-  organisationUserMiddleware,
-} from 'middlewares/organisations';
-import { projectManagerMiddleware, projectUserMiddleware } from 'middlewares/projects';
+import { orgAdminMidd, orgProjectManagerMidd } from 'middlewares/organisations';
+import { projectManagerMidd, projectUserMidd } from 'middlewares/projects';
 
 const projectRoutes: Router = Router();
+const cb = errorHandler;
 
-projectRoutes.post(
-  '/',
-  [authMiddleware, organisationProjectManagerMiddleware],
-  errorHandler(createProject),
-);
-projectRoutes.get(
-  '/:project_id',
-  [authMiddleware, projectUserMiddleware],
-  errorHandler(getProject),
-);
-projectRoutes.delete(
-  '/',
-  [authMiddleware, organisationAdminMiddleware],
-  errorHandler(removeProject),
-);
-projectRoutes.put('/', [authMiddleware, projectManagerMiddleware], errorHandler(updateProject));
-projectRoutes.get(
-  '/list/:organisation_id',
-  [authMiddleware, organisationUserMiddleware],
-  errorHandler(listProjects),
-);
-projectRoutes.post(
-  '/add-user',
-  [authMiddleware, projectManagerMiddleware],
-  errorHandler(addUserToProject),
-);
-projectRoutes.get(
-  '/users/:project_id',
-  [authMiddleware, projectManagerMiddleware],
-  errorHandler(getProjectUsers),
-);
+projectRoutes.post('/', [orgProjectManagerMidd], cb(createProject));
+projectRoutes.get('/:project_id', [projectUserMidd], cb(getProject));
+projectRoutes.delete('/', [orgAdminMidd], cb(removeProject));
+projectRoutes.put('/', [projectManagerMidd], cb(updateProject));
+projectRoutes.get('/list/:organisation_id', [projectUserMidd], cb(listProjects));
+projectRoutes.post('/users', [projectManagerMidd], cb(addUserToProject));
+projectRoutes.get('/users/:project_id', [projectUserMidd], cb(getProjectUsers));
+projectRoutes.delete('/users', [projectManagerMidd], cb(removeProjectUser));
 
 export default projectRoutes;
