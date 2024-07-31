@@ -1,7 +1,9 @@
 import {
   addUserToProject,
   createProject,
+  removeProject,
   getProject,
+  getProjectUsers,
   listProjects,
   updateProject,
 } from 'controllers/projects';
@@ -30,7 +32,7 @@ projectRoutes.get(
 projectRoutes.delete(
   '/',
   [authMiddleware, organisationAdminMiddleware],
-  errorHandler(updateProject),
+  errorHandler(removeProject),
 );
 projectRoutes.put('/', [authMiddleware, projectManagerMiddleware], errorHandler(updateProject));
 projectRoutes.get(
@@ -42,6 +44,11 @@ projectRoutes.post(
   '/add-user',
   [authMiddleware, projectManagerMiddleware],
   errorHandler(addUserToProject),
+);
+projectRoutes.get(
+  '/users/:project_id',
+  [authMiddleware, projectManagerMiddleware],
+  errorHandler(getProjectUsers),
 );
 
 export default projectRoutes;

@@ -5,6 +5,7 @@ import {
   assignUserToRole,
   confirmOrganisationInvitation,
   inviteUserToOrganisation,
+  getOrganisationUsers,
 } from 'controllers/organisations';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
@@ -36,5 +37,10 @@ organisationRoutes.post(
   errorHandler(inviteUserToOrganisation),
 );
 organisationRoutes.post('/confirm-user', errorHandler(confirmOrganisationInvitation));
+organisationRoutes.get(
+  '/users/:organisation_id',
+  [authMiddleware, organisationAdminMiddleware],
+  errorHandler(getOrganisationUsers),
+);
 
 export default organisationRoutes;

@@ -165,3 +165,15 @@ export const confirmOrganisationInvitation = async (req: Request, res: Response)
 
   res.json(organisationUser);
 };
+
+export const getOrganisationUsers = async (req: Request, res: Response) => {
+  const users = await prismaClient.user.findMany({
+    where: { organisation_user: { some: { organisation_id: req.params.organisation_id } } },
+  });
+
+  res.json(users);
+};
+
+// TODO
+export const removeOrganisation = async (req: Request, res: Response) => {};
+export const removeOrganisationUser = async (req: Request, res: Response) => {};

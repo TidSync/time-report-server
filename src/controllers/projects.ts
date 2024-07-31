@@ -100,3 +100,14 @@ export const addUserToProject = async (req: Request, res: Response) => {
 
   res.json();
 };
+
+export const getProjectUsers = async (req: Request, res: Response) => {
+  const users = await prismaClient.user.findMany({
+    where: { projects: { some: { id: req.params.project_id } } },
+  });
+
+  res.json(users);
+};
+
+// TODO
+export const removeProjectUser = async (req: Request, res: Response) => {};

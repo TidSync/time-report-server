@@ -6,6 +6,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -67,7 +68,7 @@ model OrganisationUser {
   user_role         UserRole         @default(USER)
 
   user         User         @relation(fields: [user_id], references: [id])
-  organisation Organisation @relation(fields: [organisation_id], references: [id])
+  organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, organisation_id])
   @@map("organisation_users")
@@ -93,7 +94,7 @@ model Project {
   description     String @db.Text
   color           String
 
-  organisation Organisation @relation(fields: [organisation_id], references: [id])
+  organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
   timesheet    Timesheet[]
   users        User[]
 
@@ -108,29 +109,17 @@ model Timesheet {
   user_id    String
   project_id String
 
-  user    User    @relation(fields: [user_id], references: [id])
-  project Project @relation(fields: [project_id], references: [id])
+  target_date DateTime
+  hours       Int?
+  minutes     Int?
+  description String?
+  link        String?
 
-  timesheet_props TimesheetProps[]
+  user    User    @relation(fields: [user_id], references: [id])
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   @@map("timesheets")
-}
-
-model TimesheetProps {
-  id           String @id @default(uuid())
-  timesheet_id String
-
-  target_date DateTime
-  day_amount  Decimal
-  description String
-
-  timesheet Timesheet @relation(fields: [timesheet_id], references: [id])
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  @@map("timesheet_props")
 }
