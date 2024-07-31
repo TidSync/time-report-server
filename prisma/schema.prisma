@@ -58,6 +58,7 @@ enum UserRole {
   USER
   PROJECT_MANAGER
   ADMIN
+  OWNER
 }
 
 model OrganisationUser {

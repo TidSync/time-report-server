@@ -28,6 +28,11 @@ export const AddUserToProjectSchema = z.object({
   project_id: z.string().uuid(),
 });
 
+export const RemoveProjectUserSchema = z.object({
+  user_id: z.string().uuid(),
+  project_id: z.string().uuid(),
+});
+
 export const ListProjectsSchema = z.object({
   organisation_id: z.string().uuid(),
 });

@@ -14,13 +14,18 @@ export const UpdateOrganisationSchema = GetOrganisationSchema.extend({
   name: z.string().optional(),
 });
 
-export const IsUserOrganisationAdminSchema = z.object({
-  id: z.string().uuid(),
+export const RemoveOrganisationSchema = z.object({
+  organisation_id: z.string().uuid(),
 });
 
 export const InviteUserToOrganisationSchema = z.object({
   organisation_id: z.string().uuid(),
   user_email: z.string().email(),
+});
+
+export const RemoveOrganisationUserSchema = z.object({
+  organisation_id: z.string().uuid(),
+  user_id: z.string().uuid(),
 });
 
 export const confirmOrganisationInvitationSchema = z.object({

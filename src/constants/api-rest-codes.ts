@@ -7,6 +7,7 @@ export enum ErrorCode {
   // organisation
   ORGANISATION_NOT_FOUND = 1101,
   USER_NOT_ORGANISATION = 1102,
+  CANNOT_DELETE_OWNER = 1103,
   // project
   PROJECT_NOT_FOUND = 1201,
   // miscellaneous

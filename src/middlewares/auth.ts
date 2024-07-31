@@ -13,7 +13,7 @@ declare module 'express' {
   }
 }
 
-export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+export const authMidd = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization;
 

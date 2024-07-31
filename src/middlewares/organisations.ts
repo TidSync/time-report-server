@@ -58,28 +58,35 @@ const runMiddlewareWithFilter = (
   }
 };
 
-export const organisationUserMiddleware = (req: Request, _res: Response, next: NextFunction) => {
+export const orgUserMidd = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(req, next, (orgUser, orgId) => orgUser.organisation_id === orgId);
 };
 
-export const organisationProjectManagerMiddleware = (
-  req: Request,
-  _res: Response,
-  next: NextFunction,
-) => {
+export const orgProjectManagerMidd = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(
     req,
     next,
     (orgUser, orgId) =>
-      (orgUser.user_role === UserRole.PROJECT_MANAGER || orgUser.user_role === UserRole.ADMIN) &&
+      ([UserRole.OWNER, UserRole.ADMIN, UserRole.PROJECT_MANAGER] as UserRole[]).includes(
+        orgUser.user_role,
+      ) && orgUser.organisation_id === orgId,
+  );
+};
+
+export const orgAdminMidd = (req: Request, _res: Response, next: NextFunction) => {
+  runMiddlewareWithFilter(
+    req,
+    next,
+    (orgUser, orgId) =>
+      ([UserRole.OWNER, UserRole.ADMIN] as UserRole[]).includes(orgUser.user_role) &&
       orgUser.organisation_id === orgId,
   );
 };
 
-export const organisationAdminMiddleware = (req: Request, _res: Response, next: NextFunction) => {
+export const orgOwnerMidd = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(
     req,
     next,
-    (orgUser, orgId) => orgUser.user_role === UserRole.ADMIN && orgUser.organisation_id === orgId,
+    (orgUser, orgId) => orgUser.user_role === UserRole.OWNER && orgUser.organisation_id === orgId,
   );
 };

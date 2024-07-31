@@ -1,11 +1,4 @@
-import {
-  InvitationStatus,
-  Organisation,
-  OrganisationUser,
-  Prisma,
-  Project,
-  UserRole,
-} from '@prisma/client';
+import { InvitationStatus, OrganisationUser, Prisma, Project, UserRole } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
@@ -14,15 +7,14 @@ import { prismaClient } from 'index';
 
 declare module 'express' {
   interface Request {
-    project?: Project;
-    organisation?: Organisation;
+    project?: Project & { users: { id: string }[] };
   }
 }
 
 const runMiddlewareWithFilter = async (
   req: Request,
   next: NextFunction,
-  filter: (orgUser: OrganisationUser, organisationId: string) => boolean,
+  filter: (orgUser: OrganisationUser, organisationId: string, usersList: string[]) => boolean,
 ) => {
   try {
     const projectId = req.body.project_id || req.params.project_id;
@@ -33,11 +25,15 @@ const runMiddlewareWithFilter = async (
 
     const project = await prismaClient.project.findFirstOrThrow({
       where: { id: projectId },
-      include: { organisation: true },
+      include: { users: { select: { id: true } } },
     });
 
     const orgUser = req.user?.organisation_user.find((orgUser) =>
-      filter(orgUser, project.organisation.id),
+      filter(
+        orgUser,
+        project.organisation_id,
+        project.users.map(({ id }) => id),
+      ),
     );
 
     if (!orgUser) {
@@ -46,10 +42,7 @@ const runMiddlewareWithFilter = async (
       throw new Error(ErrorMessage.USER_NOT_VERIFIED);
     }
 
-    const { organisation, ...projectData } = project;
-
-    req.project = projectData;
-    req.organisation = organisation;
+    req.project = project;
     req.orgUser = orgUser;
 
     next();
@@ -85,16 +78,59 @@ const runMiddlewareWithFilter = async (
   }
 };
 
-export const projectUserMiddleware = (req: Request, _res: Response, next: NextFunction) => {
-  runMiddlewareWithFilter(req, next, (orgUser, orgId) => orgUser.organisation_id === orgId);
-};
-
-export const projectManagerMiddleware = (req: Request, _res: Response, next: NextFunction) => {
+export const timesheetCreatorMidd = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(
     req,
     next,
-    (orgUser, orgId) =>
-      orgUser.organisation_id === orgId &&
-      (orgUser.user_role === UserRole.ADMIN || orgUser.user_role === UserRole.PROJECT_MANAGER),
+    (orgUser, orgId, userList) =>
+      orgUser.organisation_id === orgId && userList.includes(orgUser.user_id),
   );
+};
+
+export const projectUserMidd = (req: Request, _res: Response, next: NextFunction) => {
+  runMiddlewareWithFilter(req, next, (orgUser, orgId, userList) => {
+    if (orgUser.organisation_id !== orgId) {
+      return false;
+    }
+
+    if (orgUser.user_role === UserRole.USER) {
+      if (!userList.includes(orgUser.user_id)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    if (
+      !([UserRole.PROJECT_MANAGER, UserRole.ADMIN, UserRole.OWNER] as UserRole[]).includes(
+        orgUser.user_role,
+      )
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+};
+
+export const projectManagerMidd = (req: Request, _res: Response, next: NextFunction) => {
+  runMiddlewareWithFilter(req, next, (orgUser, orgId, userList) => {
+    if (orgUser.organisation_id !== orgId) {
+      return false;
+    }
+
+    if (orgUser.user_role === UserRole.PROJECT_MANAGER) {
+      if (!userList.includes(orgUser.user_id)) {
+        return false;
+      }
+
+      return true;
+    }
+
+    if (!([UserRole.ADMIN, UserRole.OWNER] as UserRole[]).includes(orgUser.user_role)) {
+      return false;
+    }
+
+    return true;
+  });
 };
