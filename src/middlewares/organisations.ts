@@ -2,25 +2,24 @@ import { Request, Response, NextFunction } from 'express';
 import { HttpException } from 'exceptions/http-exception';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
-import { InvitationStatus, OrganisationUser, UserRole } from '@prisma/client';
+import { InvitationStatus, OrganisationUser, Project, Team, UserRole } from '@prisma/client';
+import { getUserOrganisation } from 'query/organisations';
 
 declare module 'express' {
   interface Request {
     orgUser?: OrganisationUser;
+    project?: Project & { users: { id: string }[] };
+    team?: Team & { users: { id: string }[] };
   }
 }
 
-const runMiddlewareWithFilter = (
+const runMiddlewareWithFilter = async (
   req: Request,
   next: NextFunction,
   filter: (orgUser: OrganisationUser, organisationId: string) => boolean,
 ) => {
   try {
-    const organisationId = req.body.organisation_id || req.params.organisation_id;
-
-    if (!organisationId) {
-      throw new Error();
-    }
+    const { organisationId, ...userOrgData } = await getUserOrganisation(req);
 
     const orgUser = req.user!.organisation_user.find((organisationUser) =>
       filter(organisationUser, organisationId),
@@ -32,6 +31,8 @@ const runMiddlewareWithFilter = (
       throw new Error(ErrorMessage.USER_NOT_VERIFIED);
     }
 
+    req.project = userOrgData.project;
+    req.team = userOrgData.team;
     req.orgUser = orgUser;
 
     next();
@@ -43,6 +44,24 @@ const runMiddlewareWithFilter = (
           ErrorCode.ORGANISATION_UNVERIFIED,
           StatusCode.UNAUTHORIZED,
           error,
+        ),
+      );
+    } else if (error.message === ErrorMessage.PROJECT_NOT_FOUND) {
+      return next(
+        new HttpException(
+          ErrorMessage.PROJECT_NOT_FOUND,
+          ErrorCode.PROJECT_NOT_FOUND,
+          StatusCode.NOT_FOUND,
+          null,
+        ),
+      );
+    } else if (error.message === ErrorMessage.TEAM_NOT_FOUND) {
+      return next(
+        new HttpException(
+          ErrorMessage.TEAM_NOT_FOUND,
+          ErrorCode.TEAM_NOT_FOUND,
+          StatusCode.NOT_FOUND,
+          null,
         ),
       );
     }
@@ -58,11 +77,11 @@ const runMiddlewareWithFilter = (
   }
 };
 
-export const orgUserMidd = (req: Request, _res: Response, next: NextFunction) => {
+export const isOrgUser = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(req, next, (orgUser, orgId) => orgUser.organisation_id === orgId);
 };
 
-export const orgProjectManagerMidd = (req: Request, _res: Response, next: NextFunction) => {
+export const isOrgPM = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(
     req,
     next,
@@ -73,7 +92,7 @@ export const orgProjectManagerMidd = (req: Request, _res: Response, next: NextFu
   );
 };
 
-export const orgAdminMidd = (req: Request, _res: Response, next: NextFunction) => {
+export const isOrgAdmin = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(
     req,
     next,
@@ -83,10 +102,10 @@ export const orgAdminMidd = (req: Request, _res: Response, next: NextFunction) =
   );
 };
 
-export const orgOwnerMidd = (req: Request, _res: Response, next: NextFunction) => {
+export const isOrgOwner = (req: Request, _res: Response, next: NextFunction) => {
   runMiddlewareWithFilter(
     req,
     next,
-    (orgUser, orgId) => orgUser.user_role === UserRole.OWNER && orgUser.organisation_id === orgId,
+    (orgUser, orgId) => UserRole.OWNER === orgUser.user_role && orgUser.organisation_id === orgId,
   );
 };

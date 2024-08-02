@@ -1,28 +1,25 @@
 import {
-  addUserToProject,
   createProject,
   removeProject,
   getProject,
-  getProjectUsers,
   listProjects,
   updateProject,
-  removeProjectUser,
 } from 'controllers/projects';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
-import { orgAdminMidd, orgProjectManagerMidd } from 'middlewares/organisations';
-import { projectManagerMidd, projectUserMidd } from 'middlewares/projects';
+import { isOrgAdmin, isOrgPM, isOrgUser } from 'middlewares/organisations';
+import { isProjectUser } from 'middlewares/projects';
+import projectUsersRoute from './projectUsers';
 
 const projectRoutes: Router = Router();
 const cb = errorHandler;
 
-projectRoutes.post('/', [orgProjectManagerMidd], cb(createProject));
-projectRoutes.get('/:project_id', [projectUserMidd], cb(getProject));
-projectRoutes.delete('/', [orgAdminMidd], cb(removeProject));
-projectRoutes.put('/', [projectManagerMidd], cb(updateProject));
-projectRoutes.get('/list/:organisation_id', [projectUserMidd], cb(listProjects));
-projectRoutes.post('/users', [projectManagerMidd], cb(addUserToProject));
-projectRoutes.get('/users/:project_id', [projectUserMidd], cb(getProjectUsers));
-projectRoutes.delete('/users', [projectManagerMidd], cb(removeProjectUser));
+projectRoutes.post('/', [isOrgPM], cb(createProject));
+projectRoutes.get('/:project_id', [isOrgUser, isProjectUser], cb(getProject));
+projectRoutes.delete('/', [isOrgAdmin], cb(removeProject));
+projectRoutes.put('/', [isOrgPM, isProjectUser], cb(updateProject));
+projectRoutes.get('/list/:organisation_id', [isOrgUser], cb(listProjects));
+
+projectRoutes.use('/users', projectUsersRoute);
 
 export default projectRoutes;
