@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const UpdateTimesheetsSchema = z.object({
   project_id: z.string().uuid(),
+  user_id: z.string().uuid().optional(),
   timesheets: z.array(
     z
       .object({
@@ -34,4 +35,5 @@ export const DeleteTimesheetsSchema = z.object({
 
 export const GetTimesheetsSchema = z.object({
   project_id: z.string().uuid(),
+  user_id: z.string().uuid().optional(),
 });

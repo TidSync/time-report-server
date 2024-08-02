@@ -2,29 +2,23 @@ import {
   createOrganisation,
   getOrganisation,
   updateOrganisation,
-  assignUserToRole,
-  confirmOrganisationInvitation,
-  inviteUserToOrganisation,
-  getOrganisationUsers,
-  removeOrganisationUser,
   removeOrganisation,
 } from 'controllers/organisations';
 import { errorHandler } from 'error-handler';
 import { Router } from 'express';
-import { orgAdminMidd, orgOwnerMidd, orgUserMidd } from 'middlewares/organisations';
+import { isOrgOwner, isOrgUser } from 'middlewares/organisations';
+import orgUsersRoutes from './organisationUsers';
+import orgTeamsRoutes from './teams';
 
 const organisationRoutes: Router = Router();
 const cb = errorHandler;
 
 organisationRoutes.post('/', cb(createOrganisation));
-organisationRoutes.get('/:organisation_id', [orgUserMidd], cb(getOrganisation));
-organisationRoutes.put('/', [orgOwnerMidd], cb(updateOrganisation));
-organisationRoutes.delete('/', [orgOwnerMidd], cb(removeOrganisation));
+organisationRoutes.get('/:organisation_id', [isOrgUser], cb(getOrganisation));
+organisationRoutes.put('/', [isOrgOwner], cb(updateOrganisation));
+organisationRoutes.delete('/', [isOrgOwner], cb(removeOrganisation));
 
-organisationRoutes.put('/users', [orgAdminMidd], cb(assignUserToRole));
-organisationRoutes.post('/users', [orgAdminMidd], cb(inviteUserToOrganisation));
-organisationRoutes.delete('/users', [orgAdminMidd], cb(removeOrganisationUser));
-organisationRoutes.post('/users/confirm', cb(confirmOrganisationInvitation));
-organisationRoutes.get('/users/:organisation_id', [orgAdminMidd], cb(getOrganisationUsers));
+organisationRoutes.use('/users', cb(orgUsersRoutes));
+organisationRoutes.use('/teams', cb(orgTeamsRoutes));
 
 export default organisationRoutes;

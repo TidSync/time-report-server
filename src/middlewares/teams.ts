@@ -1,19 +1,19 @@
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
-import { Request, Response, NextFunction } from 'express';
+import { NextFunction, Request, Response } from 'express';
 import { canSeeAllEntities } from 'utils/permissions';
 
 // Precondition for this middleware is to run any of the org middlewares
-export const isProjectUser = async (req: Request, _res: Response, next: NextFunction) => {
+export const isTeamUser = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     if (canSeeAllEntities(req.orgUser!.user_role)) {
       return next();
     }
 
-    const projectUser = req.project!.users.find((user) => user.id === req.user!.id);
+    const teamUser = req.team!.users.find((user) => user.id === req.user!.id);
 
-    if (!projectUser) {
+    if (!teamUser) {
       throw new Error();
     }
 
@@ -21,8 +21,8 @@ export const isProjectUser = async (req: Request, _res: Response, next: NextFunc
   } catch (error) {
     next(
       new HttpException(
-        ErrorMessage.UNAUTHORIZED,
-        ErrorCode.PROJECT_UNAUTHORIZED,
+        ErrorMessage.USER_NOT_TEAM,
+        ErrorCode.TEAM_UNAUTHORIZED,
         StatusCode.UNAUTHORIZED,
         error,
       ),

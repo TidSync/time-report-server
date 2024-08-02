@@ -15,7 +15,7 @@ import { sendResetPasswordEmail, sendVerificationEmail } from 'utils/email';
 import { createSessionToken, createValidationToken } from 'utils/token';
 import { TokenType, UserRole } from '@prisma/client';
 import { encryptPassword, isPasswordCorrect } from 'utils/password';
-import { createNewUser, getUserByEmail } from 'query/user';
+import { createNewUser, getUserByEmail } from 'query/users';
 import Chance from 'chance';
 
 const chance = new Chance();

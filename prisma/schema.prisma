@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["relationJoins"]
 }
 
@@ -28,6 +28,7 @@ model User {
   user_token        UserToken[]
   projects          Project[]
   timesheets        Timesheet[]
+  teams             Team[]
 
   @@map("users")
 }
@@ -80,12 +81,29 @@ model Organisation {
   name String
 
   organisation_user OrganisationUser[]
+  teams             Team[]
   projects          Project[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   @@map("organisations")
+}
+
+model Team {
+  id    String @id @default(uuid())
+  name  String
+  color String
+
+  organisation_id String
+
+  users        User[]
+  organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("teams")
 }
 
 model Project {

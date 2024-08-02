@@ -41,3 +41,9 @@ export const AssignUserToOrganisationRole = z.object({
   user_id: z.string().uuid(),
   user_role: z.nativeEnum(UserRole),
 });
+
+export const FindOrganisationSchema = z.object({
+  organisation_id: z.string().uuid().optional(),
+  project_id: z.string().uuid().optional(),
+  team_id: z.string().uuid().optional(),
+});
