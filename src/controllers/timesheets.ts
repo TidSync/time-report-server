@@ -11,7 +11,12 @@ import {
 import { canSeeAllEntities } from 'utils/permissions';
 
 export const modifyTimesheets = async (req: Request, res: Response) => {
-  const { project_id, user_id: userId, timesheets } = UpdateTimesheetsSchema.parse(req.body);
+  const {
+    project_id,
+    activity_id,
+    user_id: userId,
+    timesheets,
+  } = UpdateTimesheetsSchema.parse(req.body);
   const user_id = userId || req.user!.id;
 
   if (user_id !== req.user!.id && !canSeeAllEntities(req.orgUser!.user_role)) {
@@ -25,9 +30,18 @@ export const modifyTimesheets = async (req: Request, res: Response) => {
 
   const transaction = await prismaClient.$transaction(async (tx) => {
     const promises = timesheets.map(async (timesheet) => {
+      if (!project_id && timesheet.project_category_id) {
+        throw new HttpException(
+          ErrorMessage.UNPROCESSABLE_ENTITY,
+          ErrorCode.UNPROCESSABLE_ENTITY,
+          StatusCode.UNPROCESSABLE_CONTENT,
+          null,
+        );
+      }
+
       if (!timesheet.id) {
         return tx.timesheet.create({
-          data: { ...timesheet, project_id, user_id },
+          data: { ...timesheet, project_id, activity_id, user_id },
         });
       }
 
@@ -38,7 +52,7 @@ export const modifyTimesheets = async (req: Request, res: Response) => {
       if (timesheetData) {
         return tx.timesheet.update({
           where: { id: timesheet.id },
-          data: { ...timesheet, project_id, user_id },
+          data: { ...timesheet, project_id, activity_id, user_id },
         });
       }
 

@@ -5,15 +5,15 @@ import { isOrgPM, isOrgUser } from 'middlewares/organisations';
 import { isTeamUser } from 'middlewares/teams';
 import teamUsersRoutes from './teamUsers';
 
-const teamsRoutes: Router = Router();
+const teamRoutes: Router = Router();
 const cb = errorHandler;
 
-teamsRoutes.post('/', [isOrgPM], cb(createTeam));
-teamsRoutes.put('/', [isOrgPM, isTeamUser], cb(updateTeam));
-teamsRoutes.get('/:team_id', [isOrgUser, isTeamUser], cb(getTeam));
-teamsRoutes.delete('/', [isOrgPM, isTeamUser], cb(removeTeam));
-teamsRoutes.get('/list/:organisation_id', [isOrgUser], cb(listTeams));
+teamRoutes.post('/', [isOrgPM], cb(createTeam));
+teamRoutes.put('/', [isOrgPM, isTeamUser], cb(updateTeam));
+teamRoutes.get('/:team_id', [isOrgUser, isTeamUser], cb(getTeam));
+teamRoutes.delete('/', [isOrgPM, isTeamUser], cb(removeTeam));
+teamRoutes.get('/list/:organisation_id', [isOrgUser], cb(listTeams));
 
-teamsRoutes.use('/users', teamUsersRoutes);
+teamRoutes.use('/users', teamUsersRoutes);
 
-export default teamsRoutes;
+export default teamRoutes;

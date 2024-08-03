@@ -43,6 +43,11 @@ type UserOrganisationData = {
 export const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> => {
   const validatedData = FindOrganisationSchema.parse({ ...req.body, ...req.params });
 
+  console.log('req', req);
+  console.log('req.params', req.params);
+  console.log('req.body', req.body);
+  console.log('validatedData', validatedData);
+
   if (validatedData.organisation_id) {
     return { organisationId: validatedData.organisation_id };
   }
@@ -61,13 +66,10 @@ export const getUserOrganisation = async (req: Request): Promise<UserOrganisatio
   }
 
   if (validatedData.team_id) {
-    console.log('validatedData', validatedData);
     const team = await prismaClient.team.findFirst({
       where: { id: validatedData.team_id },
       include: { users: { select: { id: true } } },
     });
-
-    console.log('team', team);
 
     if (!team) {
       throw new Error(ErrorMessage.TEAM_NOT_FOUND);

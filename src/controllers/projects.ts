@@ -31,7 +31,10 @@ export const getProject = async (req: Request, res: Response) => {
 export const removeProject = async (req: Request, res: Response) => {
   const validatedBody = DeleteProjectSchema.parse(req.body);
 
-  await prismaClient.project.delete({ where: { id: validatedBody.project_id } });
+  await prismaClient.$transaction([
+    prismaClient.project.delete({ where: { id: validatedBody.project_id } }),
+    prismaClient.timesheet.deleteMany({ where: { project_id: validatedBody.project_id } }),
+  ]);
 
   res.json();
 };

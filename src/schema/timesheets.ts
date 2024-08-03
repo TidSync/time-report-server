@@ -1,8 +1,9 @@
 import { z } from 'zod';
 
 export const UpdateTimesheetsSchema = z.object({
-  project_id: z.string().uuid(),
+  project_id: z.string().uuid().optional(),
   user_id: z.string().uuid().optional(),
+  activity_id: z.string().uuid().optional(),
   timesheets: z.array(
     z
       .object({
@@ -11,6 +12,7 @@ export const UpdateTimesheetsSchema = z.object({
         hours: z.number().int().optional(),
         minutes: z.number().int().optional(),
         description: z.string().optional(),
+        project_category_id: z.string().uuid().optional(),
         link: z.string().url(),
       })
       .transform((data, ctx) => {
