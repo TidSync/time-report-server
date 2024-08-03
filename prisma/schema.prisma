@@ -116,6 +116,7 @@ model Project {
   organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
   timesheet    Timesheet[]
   users        User[]
+  sub_projects ProjectCategory[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -123,10 +124,25 @@ model Project {
   @@map("projects")
 }
 
-model Timesheet {
+model ProjectCategory {
   id         String @id @default(uuid())
-  user_id    String
   project_id String
+
+  name        String
+  description String? @db.Text
+
+  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  timesheets Timesheet[]
+
+  @@map("project_categories")
+}
+
+model Timesheet {
+  id          String  @id @default(uuid())
+  user_id     String
+  project_id  String?
+  activity_id String?
+  project_category_id String?
 
   target_date DateTime
   hours       Int?
@@ -134,11 +150,25 @@ model Timesheet {
   description String?
   link        String?
 
-  user    User    @relation(fields: [user_id], references: [id])
-  project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  projectCategory ProjectCategory? @relation(fields: [project_category_id], references: [id])
+  user    User     @relation(fields: [user_id], references: [id])
+  project Project? @relation(fields: [project_id], references: [id])
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
   @@map("timesheets")
+}
+
+model Activity {
+  id              String @id @default(uuid())
+  organisation_id String
+
+  name        String
+  description String? @db.Text
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("activities")
 }

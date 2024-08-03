@@ -61,13 +61,10 @@ export const getUserOrganisation = async (req: Request): Promise<UserOrganisatio
   }
 
   if (validatedData.team_id) {
-    console.log('validatedData', validatedData);
     const team = await prismaClient.team.findFirst({
       where: { id: validatedData.team_id },
       include: { users: { select: { id: true } } },
     });
-
-    console.log('team', team);
 
     if (!team) {
       throw new Error(ErrorMessage.TEAM_NOT_FOUND);

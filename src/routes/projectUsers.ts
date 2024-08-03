@@ -4,11 +4,11 @@ import { Router } from 'express';
 import { isOrgPM, isOrgUser } from 'middlewares/organisations';
 import { isProjectUser } from 'middlewares/projects';
 
-const projectUsersRoute: Router = Router();
+const projectUserRoute: Router = Router();
 const cb = errorHandler;
 
-projectUsersRoute.post('/', [isOrgPM, isProjectUser], cb(addUserToProject));
-projectUsersRoute.delete('/', [isOrgPM, isProjectUser], cb(removeProjectUser));
-projectUsersRoute.get('/:project_id', [isOrgUser, isProjectUser], cb(getProjectUsers));
+projectUserRoute.post('/', [isOrgPM, isProjectUser], cb(addUserToProject));
+projectUserRoute.delete('/', [isOrgPM, isProjectUser], cb(removeProjectUser));
+projectUserRoute.get('/:project_id', [isOrgUser, isProjectUser], cb(getProjectUsers));
 
-export default projectUsersRoute;
+export default projectUserRoute;

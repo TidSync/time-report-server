@@ -36,3 +36,24 @@ export const RemoveProjectUserSchema = z.object({
 export const ListProjectsSchema = z.object({
   organisation_id: z.string().uuid(),
 });
+
+export const CreateProjectCategorySchema = z.object({
+  project_id: z.string().uuid(),
+  name: z.string(),
+  description: z.string().optional(),
+});
+
+export const UpdateProjectCategorySchema = z.object({
+  project_id: z.string().uuid(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+});
+
+export const RemoveProjectCategorySchema = z.object({
+  project_id: z.string().uuid(),
+  project_category_id: z.string().uuid(),
+});
+
+export const GetProjectCategorySchema = z.object({
+  project_id: z.string().uuid(),
+});
