@@ -45,6 +45,7 @@ export const CreateProjectCategorySchema = z.object({
 
 export const UpdateProjectCategorySchema = z.object({
   project_id: z.string().uuid(),
+  project_category_id: z.string().uuid(),
   name: z.string().optional(),
   description: z.string().optional(),
 });

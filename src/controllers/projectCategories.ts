@@ -29,7 +29,9 @@ export const removeProjectCategory = async (req: Request, res: Response) => {
 };
 
 export const updateProjectCategory = async (req: Request, res: Response) => {
-  const { project_id, ...updateData } = UpdateProjectCategorySchema.parse(req.body);
+  const { project_id, project_category_id, ...updateData } = UpdateProjectCategorySchema.parse(
+    req.body,
+  );
 
   if (Object.keys(updateData).length === 0) {
     throw new HttpException(
@@ -41,7 +43,7 @@ export const updateProjectCategory = async (req: Request, res: Response) => {
   }
 
   const category = await prismaClient.projectCategory.update({
-    where: { id: project_id },
+    where: { id: project_category_id, project_id },
     data: updateData,
   });
 

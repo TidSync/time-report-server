@@ -43,6 +43,11 @@ type UserOrganisationData = {
 export const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> => {
   const validatedData = FindOrganisationSchema.parse({ ...req.body, ...req.params });
 
+  console.log('req', req);
+  console.log('req.params', req.params);
+  console.log('req.body', req.body);
+  console.log('validatedData', validatedData);
+
   if (validatedData.organisation_id) {
     return { organisationId: validatedData.organisation_id };
   }

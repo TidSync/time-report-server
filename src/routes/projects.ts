@@ -22,6 +22,6 @@ projectRoutes.put('/', [isOrgPM, isProjectUser], cb(updateProject));
 projectRoutes.get('/list/:organisation_id', [isOrgUser], cb(listProjects));
 
 projectRoutes.use('/users', projectUserRoute);
-projectRoutes.use('/categories', [isOrgPM, isProjectUser], projectCategoryRoutes);
+projectRoutes.use('/categories', projectCategoryRoutes);
 
 export default projectRoutes;
