@@ -143,6 +143,15 @@ model Timesheet {
   @@map("timesheets")
 }
 
+model Subscription {
+  id Int @id @default(autoincrement())
+
+  name String
+  price_in_cents Int
+
+  @@map("subscriptions")
+}
+
 enum TokenType {
   VERIFY_EMAIL
   RESET_PASSWORD

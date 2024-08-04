@@ -29,7 +29,6 @@ export const RemoveOrganisationUserSchema = z.object({
 });
 
 export const confirmOrganisationInvitationSchema = z.object({
-  email: z.string().uuid().optional(),
   name: z.string().optional(),
   password: z.string().regex(passwordReg).optional(),
   organisation_id: z.string().uuid(),

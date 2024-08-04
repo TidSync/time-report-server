@@ -8,6 +8,7 @@ export enum ErrorMessage {
   INCORRECT_PASSWORD = 'Incorrect password',
   EMAIL_NOT_SENT = 'Email not sent',
   UNAUTHORIZED = 'Unauthorized',
+  USER_INFO_MISSING = 'User information missing',
   // organisation
   ORGANISATION_NOT_FOUND = 'Organisation not found',
   USER_NOT_ORGANISATION = 'User is not part of this organisation',

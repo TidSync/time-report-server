@@ -18,7 +18,7 @@ export const createTeam = async (req: Request, res: Response) => {
   const { name, color, organisation_id } = CreateTeamSchema.parse(req.body);
 
   const team = await prismaClient.team.create({
-    data: { name, color, organisation_id, users: { connect: { id: req.user!.id } } },
+    data: { name, color, organisation_id },
   });
 
   res.json(team);

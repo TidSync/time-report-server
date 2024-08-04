@@ -11,7 +11,7 @@ const rootRouter = Router();
 
 rootRouter.use('/auth', authRoutes);
 rootRouter.use('/users', usersRoutes);
-rootRouter.use('/organisations', [authMidd], organisationRoutes);
+rootRouter.use('/organisations', organisationRoutes);
 rootRouter.use('/projects', [authMidd], projectRoutes);
 rootRouter.use('/timesheets', [authMidd], timesheetRoutes);
 rootRouter.use('/teams', [authMidd], teamRoutes);

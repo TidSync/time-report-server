@@ -204,8 +204,8 @@ export const deleteMe = async (req: Request, res: Response) => {
       await prismaClient.user.update({
         where: { id: user_id },
         data: {
-          email: chance.email({ domain: '@tidsync.com' }),
-          password: encryptPassword(chance.animal()),
+          email: chance.email({ domain: '@deleted.com' }),
+          password: encryptPassword(chance.string()),
           name: 'Deleted User',
           is_verified: false,
         },
