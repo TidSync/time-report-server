@@ -6,7 +6,6 @@ import projectRoutes from './projects';
 import timesheetRoutes from './timesheets';
 import { authMidd } from 'middlewares/auth';
 import teamRoutes from './teams';
-import activityRoutes from './activities';
 
 const rootRouter = Router();
 
@@ -16,6 +15,5 @@ rootRouter.use('/organisations', [authMidd], organisationRoutes);
 rootRouter.use('/projects', [authMidd], projectRoutes);
 rootRouter.use('/timesheets', [authMidd], timesheetRoutes);
 rootRouter.use('/teams', [authMidd], teamRoutes);
-rootRouter.use('/activities', [authMidd], activityRoutes);
 
 export default rootRouter;

@@ -1,3 +1,4 @@
+import { TimesheetStatus } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
@@ -7,16 +8,12 @@ import {
   DeleteTimesheetsSchema,
   GetTimesheetsSchema,
   UpdateTimesheetsSchema,
+  UpdateTimesheetStatusSchema,
 } from 'schema/timesheets';
 import { canSeeAllEntities } from 'utils/permissions';
 
 export const modifyTimesheets = async (req: Request, res: Response) => {
-  const {
-    project_id,
-    activity_id,
-    user_id: userId,
-    timesheets,
-  } = UpdateTimesheetsSchema.parse(req.body);
+  const { project_id, user_id: userId, timesheets } = UpdateTimesheetsSchema.parse(req.body);
   const user_id = userId || req.user!.id;
 
   if (user_id !== req.user!.id && !canSeeAllEntities(req.orgUser!.user_role)) {
@@ -30,7 +27,31 @@ export const modifyTimesheets = async (req: Request, res: Response) => {
 
   const transaction = await prismaClient.$transaction(async (tx) => {
     const promises = timesheets.map(async (timesheet) => {
-      if (!project_id && timesheet.project_category_id) {
+      if (!timesheet.id) {
+        return tx.timesheet.create({
+          data: { ...timesheet, project_id, user_id },
+        });
+      }
+
+      const item = await tx.timesheet.findFirstOrThrow({
+        where: { id: timesheet.id },
+      });
+
+      if (item.status === TimesheetStatus.APPROVED) {
+        throw new HttpException(
+          ErrorMessage.TIMESHEET_ALREADY_APPROVED,
+          ErrorCode.TIMESHEET_ALREADY_APPROVED,
+          StatusCode.UNPROCESSABLE_CONTENT,
+          null,
+        );
+      }
+
+      const data = await tx.timesheet.update({
+        where: { id: timesheet.id, project_id: project_id, user_id },
+        data: { ...timesheet },
+      });
+
+      if (!data) {
         throw new HttpException(
           ErrorMessage.UNPROCESSABLE_ENTITY,
           ErrorCode.UNPROCESSABLE_ENTITY,
@@ -39,24 +60,7 @@ export const modifyTimesheets = async (req: Request, res: Response) => {
         );
       }
 
-      if (!timesheet.id) {
-        return tx.timesheet.create({
-          data: { ...timesheet, project_id, activity_id, user_id },
-        });
-      }
-
-      const timesheetData = await tx.timesheet.findFirstOrThrow({
-        where: { project_id: project_id, user_id },
-      });
-
-      if (timesheetData) {
-        return tx.timesheet.update({
-          where: { id: timesheet.id },
-          data: { ...timesheet, project_id, activity_id, user_id },
-        });
-      }
-
-      return Promise.resolve();
+      return data;
     });
 
     return Promise.all(promises);
@@ -98,4 +102,25 @@ export const getTimesheets = async (req: Request, res: Response) => {
   });
 
   res.json(timesheets);
+};
+
+export const updateTimesheetStatus = async (req: Request, res: Response) => {
+  const { project_id, timesheets } = UpdateTimesheetStatusSchema.parse(req.body);
+
+  const transaction = await prismaClient.$transaction(async (tx) => {
+    const promises = timesheets.map(async (timesheet) =>
+      tx.timesheet.update({
+        where: { project_id, id: timesheet.id },
+        data: {
+          status: timesheet.status,
+          status_comment:
+            timesheet.status !== TimesheetStatus.CHANGE_REQUESTED ? undefined : timesheet.comment,
+        },
+      }),
+    );
+
+    return Promise.all(promises);
+  });
+
+  res.json(transaction);
 };

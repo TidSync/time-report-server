@@ -9,126 +9,138 @@ datasource db {
 }
 
 model User {
-  id                String             @id @default(uuid())
-  email             String             @unique
-  name              String
-  password          String
-  is_verified       Boolean            @default(false)
-  created_at        DateTime           @default(now())
-  updated_at        DateTime           @updatedAt
+  id String @id @default(uuid())
+
+  email       String  @unique
+  name        String
+  password    String
+  is_verified Boolean @default(false)
+
+  projects Project[] @relation("ProjectToUser")
+  teams    Team[]    @relation("TeamToUser")
+
   organisation_user OrganisationUser[]
   timesheets        Timesheet[]
   user_token        UserToken[]
-  projects          Project[]          @relation("ProjectToUser")
-  teams             Team[]             @relation("TeamToUser")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("users")
 }
 
 model UserToken {
-  id         String    @id @default(uuid())
-  user_id    String
+  id      String @id @default(uuid())
+  user_id String
+
   token      String    @unique
   tokenType  TokenType
   expires_at DateTime  @default(dbgenerated("(now() + '7 days'::interval)"))
-  user       User      @relation(fields: [user_id], references: [id])
+
+  user User @relation(fields: [user_id], references: [id])
 
   @@map("user_tokens")
 }
 
 model OrganisationUser {
-  user_id           String
-  organisation_id   String
+  user_id         String
+  organisation_id String
+
   invitation_status InvitationStatus @default(PENDING)
   user_role         UserRole         @default(USER)
-  organisation      Organisation     @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
-  user              User             @relation(fields: [user_id], references: [id])
+
+  organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [user_id], references: [id])
 
   @@unique([user_id, organisation_id])
   @@map("organisation_users")
 }
 
 model Organisation {
-  id                String             @id @default(uuid())
-  name              String
-  created_at        DateTime           @default(now())
-  updated_at        DateTime           @updatedAt
+  id String @id @default(uuid())
+
+  name String
+
   organisation_user OrganisationUser[]
   projects          Project[]
   teams             Team[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("organisations")
 }
 
 model Team {
-  id              String       @id @default(uuid())
-  name            String
-  color           String
+  id              String @id @default(uuid())
   organisation_id String
-  created_at      DateTime     @default(now())
-  updated_at      DateTime     @updatedAt
-  organisation    Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
-  users           User[]       @relation("TeamToUser")
+
+  name  String
+  color String
+
+  organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
+  users        User[]       @relation("TeamToUser")
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("teams")
 }
 
 model Project {
-  id              String            @id @default(uuid())
+  id              String @id @default(uuid())
   organisation_id String
-  name            String
-  description     String
-  color           String
-  created_at      DateTime          @default(now())
-  updated_at      DateTime          @updatedAt
-  sub_projects    ProjectCategory[]
-  organisation    Organisation      @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
-  timesheet       Timesheet[]
-  users           User[]            @relation("ProjectToUser")
+
+  name        String
+  description String
+  color       String
+
+  organisation Organisation      @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
+  users        User[]            @relation("ProjectToUser")
+  sub_projects ProjectCategory[]
+  timesheet    Timesheet[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("projects")
 }
 
 model ProjectCategory {
-  id          String      @id @default(uuid())
-  project_id  String
+  id         String @id @default(uuid())
+  project_id String
+
   name        String
   description String?
-  project     Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
-  timesheets  Timesheet[]
+
+  project    Project     @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  timesheets Timesheet[]
 
   @@map("project_categories")
 }
 
 model Timesheet {
-  id                  String           @id @default(uuid())
+  id                  String  @id @default(uuid())
   user_id             String
-  project_id          String?
-  created_at          DateTime         @default(now())
-  updated_at          DateTime         @updatedAt
-  description         String?
-  hours               Int?
-  link                String?
-  minutes             Int?
-  target_date         DateTime
-  activity_id         String?
+  project_id          String
   project_category_id String?
-  projectCategory     ProjectCategory? @relation(fields: [project_category_id], references: [id])
-  project             Project?         @relation(fields: [project_id], references: [id])
-  user                User             @relation(fields: [user_id], references: [id])
+
+  description    String?
+  hours          Int?
+  link           String?
+  minutes        Int?
+  target_date    DateTime
+  status         TimesheetStatus @default(PENDING)
+  status_comment String?
+
+  projectCategory ProjectCategory? @relation(fields: [project_category_id], references: [id])
+  project         Project?         @relation(fields: [project_id], references: [id])
+  user            User             @relation(fields: [user_id], references: [id])
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
   @@map("timesheets")
-}
-
-model Activity {
-  id              String   @id @default(uuid())
-  organisation_id String
-  name            String
-  description     String?
-  created_at      DateTime @default(now())
-  updated_at      DateTime @updatedAt
-
-  @@map("activities")
 }
 
 enum TokenType {
@@ -146,4 +158,10 @@ enum UserRole {
   PROJECT_MANAGER
   ADMIN
   OWNER
+}
+
+enum TimesheetStatus {
+  APPROVED
+  PENDING
+  CHANGE_REQUESTED
 }

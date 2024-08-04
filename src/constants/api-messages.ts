@@ -8,16 +8,18 @@ export enum ErrorMessage {
   INCORRECT_PASSWORD = 'Incorrect password',
   EMAIL_NOT_SENT = 'Email not sent',
   UNAUTHORIZED = 'Unauthorized',
-  //organisation
+  // organisation
   ORGANISATION_NOT_FOUND = 'Organisation not found',
   USER_NOT_ORGANISATION = 'User is not part of this organisation',
   CANNOT_DELETE_OWNER = "Owner can't be deleted within the organisation",
-  //project
+  // project
   PROJECT_NOT_FOUND = 'Project not found',
   USER_NOT_PROJECT = 'User is not part of the project',
-  //team
+  // team
   USER_NOT_TEAM = 'User is not part of the team',
   TEAM_NOT_FOUND = 'Team not found',
+  // timesheet
+  TIMESHEET_ALREADY_APPROVED = 'Timesheet is already approved, can not modify',
   // Internal server error
   UNPROCESSABLE_ENTITY = 'Unprocessable entity',
   UPDATE_DATA_MISSING = 'No data to update',

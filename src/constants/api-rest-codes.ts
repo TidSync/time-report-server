@@ -12,6 +12,8 @@ export enum ErrorCode {
   PROJECT_NOT_FOUND = 1201,
   // team
   TEAM_NOT_FOUND = 1301,
+  // timesheet
+  TIMESHEET_ALREADY_APPROVED = 1401,
   // miscellaneous
   UNPROCESSABLE_ENTITY = 2001,
   DATABASE_PROCESS = 2002,

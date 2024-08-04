@@ -1,9 +1,9 @@
+import { TimesheetStatus } from '@prisma/client';
 import { z } from 'zod';
 
 export const UpdateTimesheetsSchema = z.object({
-  project_id: z.string().uuid().optional(),
+  project_id: z.string().uuid(),
   user_id: z.string().uuid().optional(),
-  activity_id: z.string().uuid().optional(),
   timesheets: z.array(
     z
       .object({
@@ -38,4 +38,29 @@ export const DeleteTimesheetsSchema = z.object({
 export const GetTimesheetsSchema = z.object({
   project_id: z.string().uuid(),
   user_id: z.string().uuid().optional(),
+});
+
+export const UpdateTimesheetStatusSchema = z.object({
+  project_id: z.string().uuid(),
+  user_id: z.string().uuid(),
+  timesheets: z.array(
+    z
+      .object({
+        id: z.string().uuid(),
+        status: z.nativeEnum(TimesheetStatus),
+        comment: z.string().optional(),
+      })
+      .transform((data, ctx) => {
+        if (data.status === TimesheetStatus.CHANGE_REQUESTED && !data.comment) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Must provide comment if asking for a change',
+          });
+
+          return z.NEVER;
+        }
+
+        return data;
+      }),
+  ),
 });
