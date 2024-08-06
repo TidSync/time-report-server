@@ -56,14 +56,39 @@ model OrganisationUser {
   @@map("organisation_users")
 }
 
+model OrganisationAddress {
+  id              String @id @default(uuid())
+  organisation_id String
+
+  line1       String
+  line2       String?
+  city        String
+  country     String
+  postal_code String
+  email       String
+  is_default  Boolean @default(false)
+
+  organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("organisation_addresses")
+}
+
 model Organisation {
   id String @id @default(uuid())
 
-  name String
+  name                    String
+  customer_billing_id     String?
+  subscription_billing_id String?
+  subscription_ends_at    DateTime?
+  subscription_status     SubscriptionStatus?
 
   organisation_user OrganisationUser[]
   projects          Project[]
   teams             Team[]
+  addresses         OrganisationAddress[]
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -164,4 +189,9 @@ enum TimesheetStatus {
   APPROVED
   PENDING
   CHANGE_REQUESTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
 }

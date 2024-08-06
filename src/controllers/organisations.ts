@@ -36,6 +36,7 @@ export const getOrganisation = async (req: Request, res: Response) => {
   try {
     const organisation = await prismaClient.organisation.findFirstOrThrow({
       where: { id: validatedParams.organisation_id },
+      include: { addresses: { where: { is_default: true } } },
     });
 
     res.json(organisation);

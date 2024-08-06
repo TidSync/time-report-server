@@ -1,4 +1,4 @@
-import { InvitationStatus, Organisation, OrganisationUser, User, UserRole } from '@prisma/client';
+import { InvitationStatus, OrganisationUser, User, UserRole } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
@@ -13,6 +13,11 @@ import {
   RemoveOrganisationUserSchema,
 } from 'schema/organisations';
 import { sendOrganisationInvitation } from 'utils/email';
+import Chance from 'chance';
+import { encryptPassword } from 'utils/password';
+import { createSessionToken } from 'utils/token';
+
+const chance = new Chance();
 
 export const assignUserToRole = async (req: Request, res: Response) => {
   const validatedData = AssignUserToOrganisationRole.parse(req.body);
@@ -80,11 +85,28 @@ export const assignUserToRole = async (req: Request, res: Response) => {
 
 export const inviteUserToOrganisation = async (req: Request, res: Response) => {
   const validatedBody = InviteUserToOrganisationSchema.parse(req.body);
-  const [user, organisation]: [User, Organisation] = await Promise.all([
-    getUserByEmail(validatedBody.user_email),
-    getOrganisationById(validatedBody.organisation_id),
-  ]);
+  let user: User;
 
+  try {
+    user = await getUserByEmail(validatedBody.user_email);
+  } catch (error) {
+    if (
+      error instanceof HttpException &&
+      error.errorCode === ErrorCode.USER_NOT_FOUND &&
+      error.statusCode === StatusCode.NOT_FOUND
+    ) {
+      user = await createNewUser(
+        validatedBody.user_email,
+        '',
+        encryptPassword(chance.string()),
+        `${req.protocol}://${req.get('host')}`,
+      );
+    } else {
+      throw error;
+    }
+  }
+
+  const organisation = await getOrganisationById(validatedBody.organisation_id);
   const organisationUser = await prismaClient.organisationUser.create({
     data: { user_id: user.id, organisation_id: validatedBody.organisation_id },
   });
@@ -101,36 +123,48 @@ export const inviteUserToOrganisation = async (req: Request, res: Response) => {
 };
 
 export const confirmOrganisationInvitation = async (req: Request, res: Response) => {
-  const validatedBody = confirmOrganisationInvitationSchema.parse(req.body);
-  let user = await prismaClient.user.findFirst({ where: { id: validatedBody.user_id } });
+  const { user_id, organisation_id, ...userData } = confirmOrganisationInvitationSchema.parse(
+    req.body,
+  );
 
-  if (!user) {
-    const { email, name, password } = validatedBody;
+  const transaction = await prismaClient.$transaction(async (tx) => {
+    let user = await tx.user.findFirstOrThrow({ where: { id: user_id } });
 
-    if (!email || !name || !password) {
-      throw new HttpException(
-        ErrorMessage.UNPROCESSABLE_ENTITY,
-        ErrorCode.UNPROCESSABLE_ENTITY,
-        StatusCode.UNPROCESSABLE_CONTENT,
-        null,
-      );
+    if (!user.name) {
+      if (!userData.name || !userData.password) {
+        throw new HttpException(
+          ErrorMessage.USER_INFO_MISSING,
+          ErrorCode.USER_INFO_MISSING,
+          StatusCode.UNPROCESSABLE_CONTENT,
+          null,
+        );
+      }
+
+      user = await tx.user.update({
+        where: { id: user.id },
+        data: {
+          name: userData.name,
+          password: encryptPassword(userData.password),
+          is_verified: true,
+          user_token: { deleteMany: { user_id } },
+        },
+      });
     }
 
-    user = await createNewUser(email, name, password, `${req.protocol}://${req.get('host')}`);
-  }
-
-  const organisationUser = await prismaClient.organisationUser.update({
-    where: {
-      user_id_organisation_id: {
-        user_id: user.id,
-        organisation_id: validatedBody.organisation_id,
+    await tx.organisationUser.update({
+      where: {
+        user_id_organisation_id: { user_id, organisation_id },
+        invitation_status: InvitationStatus.PENDING,
       },
-      invitation_status: InvitationStatus.PENDING,
-    },
-    data: { invitation_status: InvitationStatus.ACCEPTED },
+      data: { invitation_status: InvitationStatus.ACCEPTED },
+    });
+
+    return user;
   });
 
-  res.json(organisationUser);
+  const token = createSessionToken({ userId: transaction.id });
+
+  res.json({ user: transaction, token });
 };
 
 export const getOrganisationUsers = async (req: Request, res: Response) => {

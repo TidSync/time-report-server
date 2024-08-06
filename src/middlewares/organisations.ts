@@ -2,7 +2,15 @@ import { Request, Response, NextFunction } from 'express';
 import { HttpException } from 'exceptions/http-exception';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
-import { InvitationStatus, OrganisationUser, Project, Team, UserRole } from '@prisma/client';
+import {
+  InvitationStatus,
+  OrganisationAddress,
+  OrganisationUser,
+  Project,
+  Team,
+  Timesheet,
+  UserRole,
+} from '@prisma/client';
 import { getUserOrganisation } from 'query/organisations';
 
 declare module 'express' {
@@ -10,6 +18,8 @@ declare module 'express' {
     orgUser?: OrganisationUser;
     project?: Project & { users: { id: string }[] };
     team?: Team & { users: { id: string }[] };
+    timesheet?: Timesheet;
+    orgAddress?: OrganisationAddress;
   }
 }
 
@@ -60,6 +70,15 @@ const runMiddlewareWithFilter = async (
         new HttpException(
           ErrorMessage.TEAM_NOT_FOUND,
           ErrorCode.TEAM_NOT_FOUND,
+          StatusCode.NOT_FOUND,
+          null,
+        ),
+      );
+    } else if (error.message === ErrorMessage.ADDRESS_NOT_FOUND) {
+      return next(
+        new HttpException(
+          ErrorMessage.ADDRESS_NOT_FOUND,
+          ErrorCode.ADDRESS_NOT_FOUND,
           StatusCode.NOT_FOUND,
           null,
         ),

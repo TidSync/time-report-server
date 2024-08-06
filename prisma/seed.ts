@@ -1,26 +1,18 @@
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
+// const SUBSCRIPTION_PRICING = [
+//   { price_in_cents: 1000, name: 'Basic Package', user_limit: 10 },
+//   { price_in_cents: 2000, name: 'Advanced Package', user_limit: 50 },
+//   { price_in_cents: 3000, name: 'Expert Package', user_limit: Infinity },
+// ];
+
 async function main() {
-  const items = [];
-
-  for (let i = 0; i < 4; i++) {
-    const response = await fetch('https://fakestoreapi.com/products');
-    const result = await response.json();
-
-    items.push(...result);
-
-    // await prisma.product.createMany({
-    //   data: result.map((item: any) => ({
-    //     name: item.title,
-    //     description: item.description,
-    //     price: item.price,
-    //     tags: item.category,
-    //   })),
-    // });
-  }
-
-  console.log(items);
+  // return Promise.all(
+  //   SUBSCRIPTION_PRICING.map(async (subscription) => {
+  //     await prisma.subscription.create({ data: subscription });
+  //   }),
+  // );
 }
 
 main()

@@ -9,12 +9,11 @@ import {
   verifyResetPassword,
   verifyUser,
 } from 'controllers/auth';
-import { errorHandler } from 'error-handler';
+import { errorHandler as cb } from 'error-handler';
 import { Router } from 'express';
 import { authMidd } from 'middlewares/auth';
 
 const authRoutes = Router();
-const cb = errorHandler;
 
 authRoutes.post('/signup', cb(signup));
 authRoutes.post('/login', cb(login));

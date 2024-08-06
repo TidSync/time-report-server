@@ -4,7 +4,7 @@ import { ErrorMessage } from 'constants/api-messages';
 import { HttpException } from 'exceptions/http-exception';
 import { Request } from 'express';
 import { FindOrganisationSchema } from 'schema/organisations';
-import { Project, Team } from '@prisma/client';
+import { OrganisationAddress, Project, Team, Timesheet } from '@prisma/client';
 
 export const getOrganisationById = async (id: string) => {
   const organisation = await prismaClient.organisation.findFirst({ where: { id } });
@@ -38,6 +38,8 @@ type UserOrganisationData = {
   organisationId: string;
   project?: Project & { users: { id: string }[] };
   team?: Team & { users: { id: string }[] };
+  timesheet?: Timesheet;
+  orgAddress?: OrganisationAddress;
 };
 
 export const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> => {
@@ -45,9 +47,7 @@ export const getUserOrganisation = async (req: Request): Promise<UserOrganisatio
 
   if (validatedData.organisation_id) {
     return { organisationId: validatedData.organisation_id };
-  }
-
-  if (validatedData.project_id) {
+  } else if (validatedData.project_id) {
     const project = await prismaClient.project.findFirst({
       where: { id: validatedData.project_id },
       include: { users: { select: { id: true } } },
@@ -58,9 +58,7 @@ export const getUserOrganisation = async (req: Request): Promise<UserOrganisatio
     }
 
     return { organisationId: project.organisation_id, project };
-  }
-
-  if (validatedData.team_id) {
+  } else if (validatedData.team_id) {
     const team = await prismaClient.team.findFirst({
       where: { id: validatedData.team_id },
       include: { users: { select: { id: true } } },
@@ -71,6 +69,16 @@ export const getUserOrganisation = async (req: Request): Promise<UserOrganisatio
     }
 
     return { organisationId: team.organisation_id, team };
+  } else if (validatedData.organisation_address_id) {
+    const address = await prismaClient.organisationAddress.findFirst({
+      where: { id: validatedData.organisation_address_id },
+    });
+
+    if (!address) {
+      throw new Error(ErrorMessage.ADDRESS_NOT_FOUND);
+    }
+
+    return { organisationId: address.organisation_id, orgAddress: address };
   }
 
   throw new Error(ErrorMessage.UNAUTHORIZED);

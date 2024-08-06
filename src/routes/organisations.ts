@@ -4,19 +4,23 @@ import {
   updateOrganisation,
   removeOrganisation,
 } from 'controllers/organisations';
-import { errorHandler } from 'error-handler';
+import { errorHandler as cb } from 'error-handler';
 import { Router } from 'express';
 import { isOrgOwner, isOrgUser } from 'middlewares/organisations';
-import orgUsersRoutes from './organisationUsers';
+import orgUserRoutes from './organisationUsers';
+import { authMidd } from 'middlewares/auth';
+import orgAddressRoutes from './organisationAddresses';
+import orgBillingRoutes from './OrganisationBillings';
 
 const organisationRoutes: Router = Router();
-const cb = errorHandler;
 
-organisationRoutes.post('/', cb(createOrganisation));
-organisationRoutes.get('/:organisation_id', [isOrgUser], cb(getOrganisation));
-organisationRoutes.put('/', [isOrgOwner], cb(updateOrganisation));
-organisationRoutes.delete('/', [isOrgOwner], cb(removeOrganisation));
+organisationRoutes.post('/', [authMidd], cb(createOrganisation));
+organisationRoutes.get('/:organisation_id', [authMidd, isOrgUser], cb(getOrganisation));
+organisationRoutes.put('/', [authMidd, isOrgOwner], cb(updateOrganisation));
+organisationRoutes.delete('/', [authMidd, isOrgOwner], cb(removeOrganisation));
 
-organisationRoutes.use('/users', cb(orgUsersRoutes));
+organisationRoutes.use('/users', cb(orgUserRoutes));
+organisationRoutes.use('/billing', cb(orgBillingRoutes));
+organisationRoutes.use('/addresses', [authMidd, isOrgOwner], cb(orgAddressRoutes));
 
 export default organisationRoutes;

@@ -1,11 +1,10 @@
 import { updateUser } from 'controllers/users';
-import { errorHandler } from 'error-handler';
+import { errorHandler as cb } from 'error-handler';
 import { Router } from 'express';
 import { authMidd } from 'middlewares/auth';
 
-const usersRoutes: Router = Router();
-const cb = errorHandler;
+const userRoutes: Router = Router();
 
-usersRoutes.put('/', [authMidd], cb(updateUser));
+userRoutes.put('/', [authMidd], cb(updateUser));
 
-export default usersRoutes;
+export default userRoutes;
