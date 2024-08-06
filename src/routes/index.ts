@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import authRoutes from './auth';
-import usersRoutes from './users';
+import userRoutes from './users';
 import organisationRoutes from './organisations';
 import projectRoutes from './projects';
 import timesheetRoutes from './timesheets';
@@ -10,7 +10,7 @@ import teamRoutes from './teams';
 const rootRouter = Router();
 
 rootRouter.use('/auth', authRoutes);
-rootRouter.use('/users', usersRoutes);
+rootRouter.use('/users', userRoutes);
 rootRouter.use('/organisations', organisationRoutes);
 rootRouter.use('/projects', [authMidd], projectRoutes);
 rootRouter.use('/timesheets', [authMidd], timesheetRoutes);

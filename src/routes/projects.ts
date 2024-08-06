@@ -5,7 +5,7 @@ import {
   listProjects,
   updateProject,
 } from 'controllers/projects';
-import { errorHandler } from 'error-handler';
+import { errorHandler as cb } from 'error-handler';
 import { Router } from 'express';
 import { isOrgAdmin, isOrgPM, isOrgUser } from 'middlewares/organisations';
 import { isProjectUser } from 'middlewares/projects';
@@ -13,7 +13,6 @@ import projectUserRoute from './projectUsers';
 import projectCategoryRoutes from './projectCategories';
 
 const projectRoutes: Router = Router();
-const cb = errorHandler;
 
 projectRoutes.post('/', [isOrgPM], cb(createProject));
 projectRoutes.get('/:project_id', [isOrgUser, isProjectUser], cb(getProject));
