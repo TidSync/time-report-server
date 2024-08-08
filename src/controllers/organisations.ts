@@ -3,7 +3,8 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
+import { organisationModel } from 'models';
+import { sendResponse } from 'response-hook';
 import {
   CreateOrganisationSchema,
   GetOrganisationSchema,
@@ -14,33 +15,26 @@ import {
 export const createOrganisation = async (req: Request, res: Response) => {
   const validatedData = CreateOrganisationSchema.parse(req.body);
 
-  const organisation = await prismaClient.organisation.create({
-    data: {
-      name: validatedData.name,
-      organisation_user: {
-        create: {
-          user_id: req.user!.id,
-          user_role: UserRole.OWNER,
-          invitation_status: InvitationStatus.ACCEPTED,
-        },
+  const organisation = await organisationModel.createOrganisation({
+    name: validatedData.name,
+    organisation_user: {
+      create: {
+        user_id: req.user!.id,
+        user_role: UserRole.OWNER,
+        invitation_status: InvitationStatus.ACCEPTED,
       },
     },
   });
 
-  res.json(organisation);
+  sendResponse(res, organisation);
 };
 
 export const getOrganisation = async (req: Request, res: Response) => {
   const validatedParams = GetOrganisationSchema.parse(req.params);
 
-  try {
-    const organisation = await prismaClient.organisation.findFirstOrThrow({
-      where: { id: validatedParams.organisation_id },
-      include: { addresses: { where: { is_default: true } } },
-    });
+  const organisation = await organisationModel.getOrganisation(validatedParams.organisation_id);
 
-    res.json(organisation);
-  } catch (error) {
+  if (!organisation) {
     throw new HttpException(
       ErrorMessage.ORGANISATION_NOT_FOUND,
       ErrorCode.ORGANISATION_NOT_FOUND,
@@ -48,6 +42,8 @@ export const getOrganisation = async (req: Request, res: Response) => {
       null,
     );
   }
+
+  sendResponse(res, organisation);
 };
 
 export const updateOrganisation = async (req: Request, res: Response) => {
@@ -62,18 +58,15 @@ export const updateOrganisation = async (req: Request, res: Response) => {
     );
   }
 
-  const organisation = await prismaClient.organisation.update({
-    where: { id: organisation_id },
-    data: updateData,
-  });
+  const organisation = await organisationModel.updateOrganisation(organisation_id, updateData);
 
-  res.json(organisation);
+  sendResponse(res, organisation);
 };
 
 export const removeOrganisation = async (req: Request, res: Response) => {
   const validatedBody = RemoveOrganisationSchema.parse(req.body);
 
-  await prismaClient.organisation.delete({ where: { id: validatedBody.organisation_id } });
+  await organisationModel.deleteOrganisation(validatedBody.organisation_id);
 
-  res.json();
+  sendResponse(res);
 };

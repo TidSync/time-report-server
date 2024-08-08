@@ -2,7 +2,8 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
+import { projectCategoryModel } from 'models';
+import { sendResponse } from 'response-hook';
 import {
   CreateProjectCategorySchema,
   GetProjectCategorySchema,
@@ -13,25 +14,21 @@ import {
 export const createProjectCategory = async (req: Request, res: Response) => {
   const validatedBody = CreateProjectCategorySchema.parse(req.body);
 
-  const category = await prismaClient.projectCategory.create({ data: validatedBody });
+  const category = await projectCategoryModel.createProjectCategory(validatedBody);
 
-  res.json(category);
+  sendResponse(res, category);
 };
 
 export const removeProjectCategory = async (req: Request, res: Response) => {
   const validatedBody = RemoveProjectCategorySchema.parse(req.body);
 
-  await prismaClient.projectCategory.delete({
-    where: { id: validatedBody.project_category_id, project_id: validatedBody.project_id },
-  });
+  await projectCategoryModel.deleteProjectCategory(validatedBody.project_category_id);
 
-  res.json();
+  sendResponse(res);
 };
 
 export const updateProjectCategory = async (req: Request, res: Response) => {
-  const { project_id, project_category_id, ...updateData } = UpdateProjectCategorySchema.parse(
-    req.body,
-  );
+  const { project_category_id, ...updateData } = UpdateProjectCategorySchema.parse(req.body);
 
   if (Object.keys(updateData).length === 0) {
     throw new HttpException(
@@ -42,20 +39,18 @@ export const updateProjectCategory = async (req: Request, res: Response) => {
     );
   }
 
-  const category = await prismaClient.projectCategory.update({
-    where: { id: project_category_id, project_id },
-    data: updateData,
-  });
+  const category = await projectCategoryModel.updateProjectCategory(
+    project_category_id,
+    updateData,
+  );
 
-  res.json(category);
+  sendResponse(res, category);
 };
 
 export const getProjectCategories = async (req: Request, res: Response) => {
   const validatedParams = GetProjectCategorySchema.parse(req.params);
 
-  const categories = await prismaClient.projectCategory.findMany({
-    where: { project_id: validatedParams.project_id },
-  });
+  const categories = await projectCategoryModel.getProjectCategories(validatedParams.project_id);
 
-  res.json(categories);
+  sendResponse(res, categories);
 };

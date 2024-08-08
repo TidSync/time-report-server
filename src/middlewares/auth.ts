@@ -3,8 +3,8 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { NextFunction, Request, Response } from 'express';
-import { prismaClient } from 'index';
 import * as jwt from 'jsonwebtoken';
+import { userModel } from 'models';
 import { JWT_SECRET } from 'secrets';
 
 declare module 'express' {
@@ -22,11 +22,7 @@ export const authMidd = async (req: Request, res: Response, next: NextFunction) 
     }
 
     const payload = jwt.verify(token, JWT_SECRET) as any;
-
-    const user = await prismaClient.user.findFirst({
-      where: { id: payload.userId },
-      include: { organisation_user: true },
-    });
+    const user = await userModel.getUser(payload.userId);
 
     if (!user) {
       throw new Error();
@@ -54,7 +50,7 @@ export const authMidd = async (req: Request, res: Response, next: NextFunction) 
         ErrorMessage.UNAUTHORIZED,
         ErrorCode.UNAUTHORIZED,
         StatusCode.UNAUTHORIZED,
-        null,
+        error,
       ),
     );
   }

@@ -2,23 +2,25 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient, stripe } from 'index';
-import {
-  createCustomer,
-  getCustomer,
-  handleCustomerEvents,
-  handleSubscriptionEvents,
-} from 'query/stripe';
+import { stripe } from 'index';
+import { organisationModel, paymentModel } from 'models';
+import { sendResponse } from 'response-hook';
 import { CheckoutSchema } from 'schema/OrganisationBillings';
 import { STRIPE_WEBHOOK_SECRET } from 'secrets';
 import Stripe from 'stripe';
 
 export const checkout = async (req: Request, res: Response) => {
   const validatedBody = CheckoutSchema.parse(req.body);
-  const organisation = await prismaClient.organisation.findFirstOrThrow({
-    where: { id: validatedBody.organisation_id },
-    include: { addresses: { where: { is_default: true } } },
-  });
+  const organisation = await organisationModel.getOrganisation(validatedBody.organisation_id);
+
+  if (!organisation) {
+    throw new HttpException(
+      ErrorMessage.ORGANISATION_NOT_FOUND,
+      ErrorCode.ORGANISATION_NOT_FOUND,
+      StatusCode.NOT_FOUND,
+      null,
+    );
+  }
 
   if (organisation.addresses.length === 0) {
     throw new HttpException(
@@ -43,21 +45,20 @@ export const checkout = async (req: Request, res: Response) => {
   };
 
   if (!organisation.customer_billing_id) {
-    customer = await createCustomer(createCustomerData);
+    customer = await paymentModel.createCustomer(createCustomerData);
   } else {
-    const stripeCustomer = await getCustomer(organisation.customer_billing_id);
+    const stripeCustomer = await paymentModel.getCustomer(organisation.customer_billing_id);
 
     if (stripeCustomer.deleted) {
-      customer = await createCustomer(createCustomerData);
+      customer = await paymentModel.createCustomer(createCustomerData);
     } else {
       customer = stripeCustomer;
     }
   }
 
   if (organisation.customer_billing_id !== customer.id) {
-    await prismaClient.organisation.update({
-      where: { id: validatedBody.organisation_id },
-      data: { customer_billing_id: customer.id },
+    await organisationModel.updateOrganisation(validatedBody.organisation_id, {
+      customer_billing_id: customer.id,
     });
   }
 
@@ -80,7 +81,7 @@ export const checkout = async (req: Request, res: Response) => {
     cancel_url: `${req.protocol}://${req.get('host')}/api/organisations/billing/error?session_id={CHECKOUT_SESSION_ID}`,
   });
 
-  res.json(session);
+  sendResponse(res, session);
 };
 
 export const listenPaymentEvents = async (req: Request, res: Response) => {
@@ -103,10 +104,10 @@ export const listenPaymentEvents = async (req: Request, res: Response) => {
     case 'customer.subscription.created':
     case 'customer.subscription.deleted':
     case 'customer.subscription.updated':
-      await handleSubscriptionEvents(event.data);
+      await paymentModel.handleSubscriptionEvents(event.data);
       break;
     case 'customer.deleted':
-      await handleCustomerEvents(event.data);
+      await paymentModel.handleCustomerEvents(event.data);
       break;
   }
 
@@ -114,9 +115,9 @@ export const listenPaymentEvents = async (req: Request, res: Response) => {
 };
 
 export const onSuccess = async (req: Request, res: Response) => {
-  res.json({ body: req.body, params: req.params, query: req.query });
+  sendResponse(res, { body: req.body, params: req.params, query: req.query });
 };
 
 export const onError = async (req: Request, res: Response) => {
-  res.json({ body: req.body, params: req.params, query: req.query });
+  sendResponse(res, { body: req.body, params: req.params, query: req.query });
 };

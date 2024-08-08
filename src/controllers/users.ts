@@ -2,7 +2,8 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
+import { userModel } from 'models';
+import { sendResponse } from 'response-hook';
 import { UpdateUserSchema } from 'schema/users';
 
 export const updateUser = async (req: Request, res: Response) => {
@@ -17,10 +18,7 @@ export const updateUser = async (req: Request, res: Response) => {
     );
   }
 
-  const updatedUser = await prismaClient.user.update({
-    where: { id: req.user!.id },
-    data: validatedData,
-  });
+  const updatedUser = await userModel.updateUser(req.user!.id, validatedData);
 
-  res.json(updatedUser);
+  sendResponse(res, updatedUser);
 };

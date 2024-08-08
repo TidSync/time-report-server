@@ -19,6 +19,10 @@ export const RemoveOrganisationSchema = z.object({
   organisation_id: z.string().uuid(),
 });
 
+export const GetOrganisationUserSchema = z.object({
+  organisation_id: z.string().uuid(),
+});
+
 export const InviteUserToOrganisationSchema = z.object({
   organisation_id: z.string().uuid(),
   user_email: z.string().email(),
@@ -45,6 +49,7 @@ export const AssignUserToOrganisationRole = z.object({
 export const FindOrganisationSchema = z.object({
   organisation_id: z.string().uuid().optional(),
   project_id: z.string().uuid().optional(),
+  project_category_id: z.string().uuid().optional(),
   team_id: z.string().uuid().optional(),
   organisation_address_id: z.string().uuid().optional(),
   timesheet_id: z.string().uuid().optional(),

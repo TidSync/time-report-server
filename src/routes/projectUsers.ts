@@ -1,4 +1,4 @@
-import { addUserToProject, getProjectUsers, removeProjectUser } from 'controllers/projects';
+import { addUserToProject, getProjectUsers, removeProjectUser } from 'controllers/projectUsers';
 import { errorHandler as cb } from 'error-handler';
 import { Router } from 'express';
 import { isOrgPM, isOrgUser } from 'middlewares/organisations';

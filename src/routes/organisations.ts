@@ -21,6 +21,6 @@ organisationRoutes.delete('/', [authMidd, isOrgOwner], cb(removeOrganisation));
 
 organisationRoutes.use('/users', cb(orgUserRoutes));
 organisationRoutes.use('/billing', cb(orgBillingRoutes));
-organisationRoutes.use('/addresses', [authMidd, isOrgOwner], cb(orgAddressRoutes));
+organisationRoutes.use('/addresses', [authMidd], cb(orgAddressRoutes));
 
 export default organisationRoutes;

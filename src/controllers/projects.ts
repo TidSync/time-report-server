@@ -1,42 +1,38 @@
-import { UserRole } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
+import { projectModel } from 'models';
+import { sendResponse } from 'response-hook';
 import { SkipSchema } from 'schema/generic';
 import {
-  AddUserToProjectSchema,
   CreateProjectSchema,
   DeleteProjectSchema,
   ListProjectsSchema,
-  RemoveProjectUserSchema,
   UpdateProjectSchema,
 } from 'schema/projects';
 
 export const createProject = async (req: Request, res: Response) => {
   const validatedBody = CreateProjectSchema.parse(req.body);
 
-  const project = await prismaClient.project.create({
-    data: { ...validatedBody, users: { connect: { id: req.user!.id } } },
+  const project = await projectModel.createProject({
+    ...validatedBody,
+    users: { connect: { id: req.user!.id } },
   });
 
-  res.json(project);
+  sendResponse(res, project);
 };
 
 export const getProject = async (req: Request, res: Response) => {
-  res.json(req.project);
+  sendResponse(res, req.project);
 };
 
 export const removeProject = async (req: Request, res: Response) => {
   const validatedBody = DeleteProjectSchema.parse(req.body);
 
-  await prismaClient.$transaction([
-    prismaClient.project.delete({ where: { id: validatedBody.project_id } }),
-    prismaClient.timesheet.deleteMany({ where: { project_id: validatedBody.project_id } }),
-  ]);
+  await projectModel.deleteProject(validatedBody.project_id);
 
-  res.json();
+  sendResponse(res);
 };
 
 export const updateProject = async (req: Request, res: Response) => {
@@ -51,78 +47,21 @@ export const updateProject = async (req: Request, res: Response) => {
     );
   }
 
-  const project = await prismaClient.project.update({
-    where: { id: project_id },
-    data: updateData,
-  });
+  const project = await projectModel.updateProject(project_id, updateData);
 
-  res.json(project);
+  sendResponse(res, project);
 };
 
 export const listProjects = async (req: Request, res: Response) => {
   const { cursor } = SkipSchema.parse(req.query);
   const validatedParams = ListProjectsSchema.parse(req.params);
-  const areAllVisible = req.orgUser?.user_role === UserRole.ADMIN;
 
-  const projects = await prismaClient.project.findMany({
-    where: {
-      organisation_id: validatedParams.organisation_id,
-      ...(areAllVisible ? {} : { users: { some: { id: req.user!.id } } }),
-    },
-    orderBy: { created_at: 'desc' },
-    take: 10,
-    skip: cursor ? 1 : undefined,
-    cursor: cursor ? { id: cursor } : undefined,
-  });
+  const projects = await projectModel.listProjects(
+    req.user!.id,
+    req.orgUser!.user_role,
+    validatedParams.organisation_id,
+    cursor,
+  );
 
-  res.json(projects);
-};
-
-export const addUserToProject = async (req: Request, res: Response) => {
-  const { user_id, project_id } = AddUserToProjectSchema.parse(req.body);
-
-  try {
-    await prismaClient.user.findFirstOrThrow({
-      where: {
-        id: user_id,
-        organisation_user: { some: { organisation_id: req.project?.organisation_id } },
-      },
-    });
-  } catch (error) {
-    throw new HttpException(
-      ErrorMessage.USER_NOT_ORGANISATION,
-      ErrorCode.USER_NOT_ORGANISATION,
-      StatusCode.NOT_FOUND,
-      null,
-    );
-  }
-
-  await prismaClient.project.update({
-    where: { id: project_id },
-    data: { users: { connect: { id: user_id } } },
-  });
-
-  res.json();
-};
-
-export const getProjectUsers = async (req: Request, res: Response) => {
-  const users = await prismaClient.user.findMany({
-    where: { projects: { some: { id: req.params.project_id } } },
-  });
-
-  res.json(users);
-};
-
-export const removeProjectUser = async (req: Request, res: Response) => {
-  const validatedBody = RemoveProjectUserSchema.parse(req.body);
-
-  await prismaClient.project.update({
-    where: { id: validatedBody.project_id },
-    data: {
-      users: { disconnect: { id: validatedBody.user_id } },
-      timesheet: { deleteMany: { user_id: validatedBody.user_id } },
-    },
-  });
-
-  res.json();
+  sendResponse(res, projects);
 };

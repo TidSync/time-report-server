@@ -1,5 +1,6 @@
 import { Organisation, SubscriptionStatus } from '@prisma/client';
 import { prismaClient, stripe } from 'index';
+import { organisationModel } from 'models';
 import Stripe from 'stripe';
 
 export const getCustomer = async (customerId: string) => {
@@ -36,9 +37,7 @@ export const handleSubscriptionEvents = async (
     return;
   }
 
-  const organisation = await prismaClient.organisation.findFirst({
-    where: { id: organisation_id },
-  });
+  const organisation = await organisationModel.getOrganisation(organisation_id);
 
   if (!organisation) {
     return;

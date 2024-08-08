@@ -9,6 +9,7 @@ export enum ErrorMessage {
   EMAIL_NOT_SENT = 'Email not sent',
   UNAUTHORIZED = 'Unauthorized',
   USER_INFO_MISSING = 'User information missing',
+  USER_ALREADY_VERIFIED = 'User already verified',
   // organisation
   ORGANISATION_NOT_FOUND = 'Organisation not found',
   USER_NOT_ORGANISATION = 'User is not part of this organisation',
@@ -17,6 +18,7 @@ export enum ErrorMessage {
   // project
   PROJECT_NOT_FOUND = 'Project not found',
   USER_NOT_PROJECT = 'User is not part of the project',
+  PROJECT_CATEGORY_NOT_FOUND = 'Project Category not found',
   // team
   USER_NOT_TEAM = 'User is not part of the team',
   TEAM_NOT_FOUND = 'Team not found',
