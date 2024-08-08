@@ -1,14 +1,12 @@
-import { InvitationStatus, OrganisationUser, User, UserRole } from '@prisma/client';
+import { OrganisationUser, UserRole } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
-import { getOrganisationById } from 'query/organisations';
-import { createNewUser, getUserByEmail } from 'query/users';
 import {
   AssignUserToOrganisationRole,
   confirmOrganisationInvitationSchema,
+  GetOrganisationUserSchema,
   InviteUserToOrganisationSchema,
   RemoveOrganisationUserSchema,
 } from 'schema/organisations';
@@ -16,6 +14,8 @@ import { sendOrganisationInvitation } from 'utils/email';
 import Chance from 'chance';
 import { encryptPassword } from 'utils/password';
 import { createSessionToken } from 'utils/token';
+import { organisationModel, organisationUserModel, userModel } from 'models';
+import { sendResponse } from 'response-hook';
 
 const chance = new Chance();
 
@@ -33,42 +33,17 @@ export const assignUserToRole = async (req: Request, res: Response) => {
       );
     }
 
-    [updatedUser] = await prismaClient.$transaction([
-      prismaClient.organisationUser.update({
-        where: {
-          user_id_organisation_id: {
-            user_id: validatedData.user_id,
-            organisation_id: validatedData.organisation_id,
-          },
-        },
-        data: {
-          user_role: validatedData.user_role,
-        },
-      }),
-      prismaClient.organisationUser.update({
-        where: {
-          user_id_organisation_id: {
-            user_id: req.user!.id,
-            organisation_id: validatedData.organisation_id,
-          },
-        },
-        data: {
-          user_role: UserRole.ADMIN,
-        },
-      }),
-    ]);
+    [updatedUser] = await organisationUserModel.assignOwnerRole(
+      validatedData.user_id,
+      req.user!.id,
+      validatedData.organisation_id,
+    );
   } else {
-    updatedUser = await prismaClient.organisationUser.update({
-      where: {
-        user_id_organisation_id: {
-          user_id: validatedData.user_id,
-          organisation_id: validatedData.organisation_id,
-        },
-      },
-      data: {
-        user_role: validatedData.user_role,
-      },
-    });
+    updatedUser = await organisationUserModel.updateOrganisationUser(
+      validatedData.user_id,
+      validatedData.organisation_id,
+      { user_role: validatedData.user_role },
+    );
   }
 
   if (!updatedUser) {
@@ -80,36 +55,37 @@ export const assignUserToRole = async (req: Request, res: Response) => {
     );
   }
 
-  res.json(updatedUser);
+  sendResponse(res, updatedUser);
 };
 
 export const inviteUserToOrganisation = async (req: Request, res: Response) => {
   const validatedBody = InviteUserToOrganisationSchema.parse(req.body);
-  let user: User;
+  let user = await userModel.getUserByEmail(validatedBody.user_email);
 
-  try {
-    user = await getUserByEmail(validatedBody.user_email);
-  } catch (error) {
-    if (
-      error instanceof HttpException &&
-      error.errorCode === ErrorCode.USER_NOT_FOUND &&
-      error.statusCode === StatusCode.NOT_FOUND
-    ) {
-      user = await createNewUser(
-        validatedBody.user_email,
-        '',
-        encryptPassword(chance.string()),
-        `${req.protocol}://${req.get('host')}`,
-      );
-    } else {
-      throw error;
-    }
+  if (!user) {
+    user = await userModel.createUser(
+      validatedBody.user_email,
+      '',
+      encryptPassword(chance.string()),
+      `${req.protocol}://${req.get('host')}`,
+    );
   }
 
-  const organisation = await getOrganisationById(validatedBody.organisation_id);
-  const organisationUser = await prismaClient.organisationUser.create({
-    data: { user_id: user.id, organisation_id: validatedBody.organisation_id },
-  });
+  const organisation = await organisationModel.getOrganisation(validatedBody.organisation_id);
+
+  if (!organisation) {
+    throw new HttpException(
+      ErrorMessage.ORGANISATION_NOT_FOUND,
+      ErrorCode.ORGANISATION_NOT_FOUND,
+      StatusCode.NOT_FOUND,
+      null,
+    );
+  }
+
+  const organisationUser = organisationUserModel.createOrganisationUser(
+    user.id,
+    validatedBody.organisation_id,
+  );
 
   await sendOrganisationInvitation(
     validatedBody.user_email,
@@ -119,7 +95,7 @@ export const inviteUserToOrganisation = async (req: Request, res: Response) => {
     `${req.protocol}://${req.get('host')}`,
   );
 
-  res.json(organisationUser);
+  sendResponse(res, organisationUser);
 };
 
 export const confirmOrganisationInvitation = async (req: Request, res: Response) => {
@@ -127,60 +103,40 @@ export const confirmOrganisationInvitation = async (req: Request, res: Response)
     req.body,
   );
 
-  const transaction = await prismaClient.$transaction(async (tx) => {
-    let user = await tx.user.findFirstOrThrow({ where: { id: user_id } });
-
-    if (!user.name) {
-      if (!userData.name || !userData.password) {
-        throw new HttpException(
-          ErrorMessage.USER_INFO_MISSING,
-          ErrorCode.USER_INFO_MISSING,
-          StatusCode.UNPROCESSABLE_CONTENT,
-          null,
-        );
-      }
-
-      user = await tx.user.update({
-        where: { id: user.id },
-        data: {
-          name: userData.name,
-          password: encryptPassword(userData.password),
-          is_verified: true,
-          user_token: { deleteMany: { user_id } },
-        },
-      });
-    }
-
-    await tx.organisationUser.update({
-      where: {
-        user_id_organisation_id: { user_id, organisation_id },
-        invitation_status: InvitationStatus.PENDING,
-      },
-      data: { invitation_status: InvitationStatus.ACCEPTED },
-    });
-
-    return user;
-  });
+  const transaction = await organisationModel.confirmOrganisationInvitation(
+    user_id,
+    organisation_id,
+    userData,
+  );
 
   const token = createSessionToken({ userId: transaction.id });
 
-  res.json({ user: transaction, token });
+  sendResponse(res, { user: transaction, token });
 };
 
 export const getOrganisationUsers = async (req: Request, res: Response) => {
-  const users = await prismaClient.user.findMany({
-    where: { organisation_user: { some: { organisation_id: req.params.organisation_id } } },
-  });
+  const validatedParams = GetOrganisationUserSchema.parse(req.params);
+  const users = await organisationUserModel.getOrganisationUsers(validatedParams.organisation_id);
 
-  res.json(users);
+  sendResponse(res, users);
 };
 
 export const removeOrganisationUser = async (req: Request, res: Response) => {
   const validatedBody = RemoveOrganisationUserSchema.parse(req.body);
 
-  const userToDelete = await prismaClient.organisationUser.findFirstOrThrow({
-    where: { organisation_id: validatedBody.organisation_id, user_id: validatedBody.user_id },
-  });
+  const userToDelete = await organisationUserModel.getOrganisationUser(
+    validatedBody.user_id,
+    validatedBody.organisation_id,
+  );
+
+  if (!userToDelete) {
+    throw new HttpException(
+      ErrorMessage.USER_NOT_FOUND,
+      ErrorCode.USER_NOT_FOUND,
+      StatusCode.NOT_FOUND,
+      null,
+    );
+  }
 
   if (userToDelete.user_role === UserRole.OWNER) {
     throw new HttpException(
@@ -191,14 +147,10 @@ export const removeOrganisationUser = async (req: Request, res: Response) => {
     );
   }
 
-  await prismaClient.organisationUser.delete({
-    where: {
-      user_id_organisation_id: {
-        user_id: validatedBody.user_id,
-        organisation_id: validatedBody.organisation_id,
-      },
-    },
-  });
+  await organisationUserModel.deleteOrganisationUser(
+    validatedBody.user_id,
+    validatedBody.organisation_id,
+  );
 
-  res.json();
+  sendResponse(res);
 };

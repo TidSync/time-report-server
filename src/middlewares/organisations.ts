@@ -11,7 +11,8 @@ import {
   Timesheet,
   UserRole,
 } from '@prisma/client';
-import { getUserOrganisation } from 'query/organisations';
+import { FindOrganisationSchema } from 'schema/organisations';
+import { organisationAddressModel, projectCategoryModel, projectModel, teamModel } from 'models';
 
 declare module 'express' {
   interface Request {
@@ -22,6 +23,80 @@ declare module 'express' {
     orgAddress?: OrganisationAddress;
   }
 }
+
+type UserOrganisationData = {
+  organisationId: string;
+  project?: Project & { users: { id: string }[] };
+  team?: Team & { users: { id: string }[] };
+  timesheet?: Timesheet;
+  orgAddress?: OrganisationAddress;
+};
+
+const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> => {
+  const validatedData = FindOrganisationSchema.parse({ ...req.body, ...req.params });
+
+  if (validatedData.organisation_id) {
+    return { organisationId: validatedData.organisation_id };
+  } else if (validatedData.project_id) {
+    const project = await projectModel.getProject(validatedData.project_id);
+
+    if (!project) {
+      throw new HttpException(
+        ErrorMessage.PROJECT_NOT_FOUND,
+        ErrorCode.PROJECT_NOT_FOUND,
+        StatusCode.NOT_FOUND,
+        null,
+      );
+    }
+
+    return { organisationId: project.organisation_id, project };
+  } else if (validatedData.team_id) {
+    const team = await teamModel.getTeam(validatedData.team_id);
+
+    if (!team) {
+      throw new HttpException(
+        ErrorMessage.TEAM_NOT_FOUND,
+        ErrorCode.TEAM_NOT_FOUND,
+        StatusCode.NOT_FOUND,
+        null,
+      );
+    }
+
+    return { organisationId: team.organisation_id, team };
+  } else if (validatedData.organisation_address_id) {
+    const address = await organisationAddressModel.getAddress(
+      validatedData.organisation_address_id,
+    );
+
+    if (!address) {
+      throw new HttpException(
+        ErrorMessage.ADDRESS_NOT_FOUND,
+        ErrorCode.ADDRESS_NOT_FOUND,
+        StatusCode.NOT_FOUND,
+        null,
+      );
+    }
+
+    return { organisationId: address.organisation_id, orgAddress: address };
+  } else if (validatedData.project_category_id) {
+    const projectCategory = await projectCategoryModel.getProjectCategory(
+      validatedData.project_category_id,
+    );
+
+    if (!projectCategory) {
+      throw new HttpException(
+        ErrorMessage.PROJECT_CATEGORY_NOT_FOUND,
+        ErrorCode.PROJECT_CATEGORY_NOT_FOUND,
+        StatusCode.NOT_FOUND,
+        null,
+      );
+    }
+
+    return { organisationId: projectCategory.project.organisation_id };
+  }
+
+  throw new Error();
+};
 
 const runMiddlewareWithFilter = async (
   req: Request,
@@ -47,52 +122,18 @@ const runMiddlewareWithFilter = async (
 
     next();
   } catch (error: any) {
-    if (error.message === ErrorMessage.USER_NOT_VERIFIED) {
-      return next(
+    if (error instanceof HttpException) {
+      next(error);
+    } else {
+      next(
         new HttpException(
-          ErrorMessage.USER_NOT_VERIFIED,
-          ErrorCode.ORGANISATION_UNVERIFIED,
+          ErrorMessage.UNAUTHORIZED,
+          ErrorCode.ORGANISATION_UNAUTHORIZED,
           StatusCode.UNAUTHORIZED,
           error,
         ),
       );
-    } else if (error.message === ErrorMessage.PROJECT_NOT_FOUND) {
-      return next(
-        new HttpException(
-          ErrorMessage.PROJECT_NOT_FOUND,
-          ErrorCode.PROJECT_NOT_FOUND,
-          StatusCode.NOT_FOUND,
-          null,
-        ),
-      );
-    } else if (error.message === ErrorMessage.TEAM_NOT_FOUND) {
-      return next(
-        new HttpException(
-          ErrorMessage.TEAM_NOT_FOUND,
-          ErrorCode.TEAM_NOT_FOUND,
-          StatusCode.NOT_FOUND,
-          null,
-        ),
-      );
-    } else if (error.message === ErrorMessage.ADDRESS_NOT_FOUND) {
-      return next(
-        new HttpException(
-          ErrorMessage.ADDRESS_NOT_FOUND,
-          ErrorCode.ADDRESS_NOT_FOUND,
-          StatusCode.NOT_FOUND,
-          null,
-        ),
-      );
     }
-
-    next(
-      new HttpException(
-        ErrorMessage.UNAUTHORIZED,
-        ErrorCode.ORGANISATION_UNAUTHORIZED,
-        StatusCode.UNAUTHORIZED,
-        error,
-      ),
-    );
   }
 };
 

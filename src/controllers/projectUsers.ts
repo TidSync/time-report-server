@@ -2,20 +2,20 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
-import { AddUserToProjectSchema, RemoveProjectUserSchema } from 'schema/projects';
+import { projectModel, userModel } from 'models';
+import { sendResponse } from 'response-hook';
+import {
+  AddUserToProjectSchema,
+  GetProjectUsersSchema,
+  RemoveProjectUserSchema,
+} from 'schema/projects';
 
 export const addUserToProject = async (req: Request, res: Response) => {
   const { user_id, project_id } = AddUserToProjectSchema.parse(req.body);
 
-  try {
-    await prismaClient.user.findFirstOrThrow({
-      where: {
-        id: user_id,
-        organisation_user: { some: { organisation_id: req.project?.organisation_id } },
-      },
-    });
-  } catch (error) {
+  const user = await userModel.getUserInOrganisation(user_id, req.project!.organisation_id);
+
+  if (!user) {
     throw new HttpException(
       ErrorMessage.USER_NOT_ORGANISATION,
       ErrorCode.USER_NOT_ORGANISATION,
@@ -24,32 +24,25 @@ export const addUserToProject = async (req: Request, res: Response) => {
     );
   }
 
-  await prismaClient.project.update({
-    where: { id: project_id },
-    data: { users: { connect: { id: user_id } } },
-  });
+  await projectModel.updateProject(project_id, { users: { connect: { id: user_id } } });
 
-  res.json();
+  sendResponse(res);
 };
 
 export const getProjectUsers = async (req: Request, res: Response) => {
-  const users = await prismaClient.user.findMany({
-    where: { projects: { some: { id: req.params.project_id } } },
-  });
+  const validatedParams = GetProjectUsersSchema.parse(req.params);
+  const users = await userModel.getProjectUsers(validatedParams.project_id);
 
-  res.json(users);
+  sendResponse(res, users);
 };
 
 export const removeProjectUser = async (req: Request, res: Response) => {
   const validatedBody = RemoveProjectUserSchema.parse(req.body);
 
-  await prismaClient.project.update({
-    where: { id: validatedBody.project_id },
-    data: {
-      users: { disconnect: { id: validatedBody.user_id } },
-      timesheet: { deleteMany: { user_id: validatedBody.user_id } },
-    },
+  projectModel.updateProject(validatedBody.project_id, {
+    users: { disconnect: { id: validatedBody.user_id } },
+    timesheet: { deleteMany: { user_id: validatedBody.user_id } },
   });
 
-  res.json();
+  sendResponse(res);
 };

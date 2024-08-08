@@ -23,6 +23,10 @@ export const UpdateProjectSchema = z.object({
   color: z.string().regex(COLORS_REGEX).optional(),
 });
 
+export const GetProjectUsersSchema = z.object({
+  project_id: z.string().uuid(),
+});
+
 export const AddUserToProjectSchema = z.object({
   user_id: z.string().uuid(),
   project_id: z.string().uuid(),
@@ -44,14 +48,12 @@ export const CreateProjectCategorySchema = z.object({
 });
 
 export const UpdateProjectCategorySchema = z.object({
-  project_id: z.string().uuid(),
   project_category_id: z.string().uuid(),
   name: z.string().optional(),
   description: z.string().optional(),
 });
 
 export const RemoveProjectCategorySchema = z.object({
-  project_id: z.string().uuid(),
   project_category_id: z.string().uuid(),
 });
 

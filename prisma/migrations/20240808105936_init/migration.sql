@@ -10,6 +10,9 @@ CREATE TYPE "UserRole" AS ENUM ('USER', 'PROJECT_MANAGER', 'ADMIN', 'OWNER');
 -- CreateEnum
 CREATE TYPE "TimesheetStatus" AS ENUM ('APPROVED', 'PENDING', 'CHANGE_REQUESTED');
 
+-- CreateEnum
+CREATE TYPE "SubscriptionStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -17,6 +20,7 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "password" TEXT NOT NULL,
     "is_verified" BOOLEAN NOT NULL DEFAULT false,
+    "is_deleted" BOOLEAN NOT NULL DEFAULT false,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -28,7 +32,7 @@ CREATE TABLE "user_tokens" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "token" TEXT NOT NULL,
-    "tokenType" "TokenType" NOT NULL,
+    "token_type" "TokenType" NOT NULL,
     "expires_at" TIMESTAMP(3) NOT NULL DEFAULT (now() + '7 days'::interval),
 
     CONSTRAINT "user_tokens_pkey" PRIMARY KEY ("id")
@@ -43,9 +47,30 @@ CREATE TABLE "organisation_users" (
 );
 
 -- CreateTable
+CREATE TABLE "organisation_addresses" (
+    "id" TEXT NOT NULL,
+    "organisation_id" TEXT NOT NULL,
+    "line1" TEXT NOT NULL,
+    "line2" TEXT,
+    "city" TEXT NOT NULL,
+    "country" TEXT NOT NULL,
+    "postal_code" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "is_default" BOOLEAN NOT NULL DEFAULT false,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "organisation_addresses_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "organisations" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
+    "customer_billing_id" TEXT,
+    "subscription_billing_id" TEXT,
+    "subscription_ends_at" TIMESTAMP(3),
+    "subscription_status" "SubscriptionStatus",
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -107,15 +132,6 @@ CREATE TABLE "timesheets" (
 );
 
 -- CreateTable
-CREATE TABLE "subscriptions" (
-    "id" SERIAL NOT NULL,
-    "name" TEXT NOT NULL,
-    "price_in_cents" INTEGER NOT NULL,
-
-    CONSTRAINT "subscriptions_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "_TeamToUser" (
     "A" TEXT NOT NULL,
     "B" TEXT NOT NULL
@@ -156,6 +172,9 @@ ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_organisation
 
 -- AddForeignKey
 ALTER TABLE "organisation_users" ADD CONSTRAINT "organisation_users_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "organisation_addresses" ADD CONSTRAINT "organisation_addresses_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "teams" ADD CONSTRAINT "teams_organisation_id_fkey" FOREIGN KEY ("organisation_id") REFERENCES "organisations"("id") ON DELETE CASCADE ON UPDATE CASCADE;

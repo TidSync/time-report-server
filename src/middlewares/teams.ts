@@ -2,12 +2,12 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { NextFunction, Request, Response } from 'express';
-import { canSeeAllEntities } from 'utils/permissions';
+import { canSeeAllUnderProjectEntities } from 'utils/permissions';
 
 // Precondition for this middleware is to run any of the org middlewares
 export const isTeamUser = async (req: Request, _res: Response, next: NextFunction) => {
   try {
-    if (canSeeAllEntities(req.orgUser!.user_role)) {
+    if (canSeeAllUnderProjectEntities(req.orgUser!.user_role)) {
       return next();
     }
 

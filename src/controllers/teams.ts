@@ -1,38 +1,27 @@
-import { Team } from '@prisma/client';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
+import { teamModel } from 'models';
+import { sendResponse } from 'response-hook';
 import { SkipSchema } from 'schema/generic';
 import {
   CreateTeamSchema,
   DeleteTeamSchema,
-  GetTeamSchema,
   ListTeamsSchema,
   UpdateTeamSchema,
 } from 'schema/teams';
-import { canSeeAllEntities } from 'utils/permissions';
 
 export const createTeam = async (req: Request, res: Response) => {
-  const { name, color, organisation_id } = CreateTeamSchema.parse(req.body);
+  const validatedBody = CreateTeamSchema.parse(req.body);
 
-  const team = await prismaClient.team.create({
-    data: { name, color, organisation_id },
-  });
+  const team = await teamModel.createTeam(validatedBody);
 
-  res.json(team);
+  sendResponse(res, team);
 };
 
 export const getTeam = async (req: Request, res: Response) => {
-  const validatedParams = GetTeamSchema.parse(req.params);
-  let team = req.team as Team;
-
-  if (!team) {
-    team = await prismaClient.team.findFirstOrThrow({ where: { id: validatedParams.team_id } });
-  }
-
-  res.json(req.team);
+  sendResponse(res, req.team);
 };
 
 export const updateTeam = async (req: Request, res: Response) => {
@@ -47,37 +36,29 @@ export const updateTeam = async (req: Request, res: Response) => {
     );
   }
 
-  const project = await prismaClient.team.update({
-    where: { id: team_id },
-    data: updateData,
-  });
+  const team = await teamModel.updateTeam(team_id, updateData);
 
-  res.json(project);
+  sendResponse(res, team);
 };
 
 export const removeTeam = async (req: Request, res: Response) => {
   const validatedBody = DeleteTeamSchema.parse(req.body);
 
-  await prismaClient.team.delete({ where: { id: validatedBody.team_id } });
+  await teamModel.deleteTeam(validatedBody.team_id);
 
-  res.json();
+  sendResponse(res);
 };
 
 export const listTeams = async (req: Request, res: Response) => {
   const { cursor } = SkipSchema.parse(req.query);
   const validatedParams = ListTeamsSchema.parse(req.params);
-  const areAllVisible = canSeeAllEntities(req.orgUser!.user_role);
 
-  const teams = await prismaClient.team.findMany({
-    where: {
-      organisation_id: validatedParams.organisation_id,
-      ...(areAllVisible ? {} : { users: { some: { id: req.user!.id } } }),
-    },
-    orderBy: { created_at: 'desc' },
-    take: 10,
-    skip: cursor ? 1 : undefined,
-    cursor: cursor ? { id: cursor } : undefined,
-  });
+  const teams = await teamModel.listTeams(
+    req.user!.id,
+    req.orgUser!.user_role,
+    validatedParams.organisation_id,
+    cursor,
+  );
 
-  res.json(teams);
+  sendResponse(res, teams);
 };

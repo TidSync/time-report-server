@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
 export const UpdateUserSchema = z.object({
+  // id: z.string().uuid(),
   name: z.string().optional(),
 });

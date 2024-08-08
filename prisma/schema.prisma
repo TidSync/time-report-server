@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins"]
+  previewFeatures = ["relationJoins", "omitApi"]
 }
 
 datasource db {
@@ -15,6 +15,7 @@ model User {
   name        String
   password    String
   is_verified Boolean @default(false)
+  is_deleted  Boolean @default(false)
 
   projects Project[] @relation("ProjectToUser")
   teams    Team[]    @relation("TeamToUser")
@@ -34,7 +35,7 @@ model UserToken {
   user_id String
 
   token      String    @unique
-  tokenType  TokenType
+  token_type TokenType
   expires_at DateTime  @default(dbgenerated("(now() + '7 days'::interval)"))
 
   user User @relation(fields: [user_id], references: [id])
@@ -159,7 +160,7 @@ model Timesheet {
   status_comment String?
 
   projectCategory ProjectCategory? @relation(fields: [project_category_id], references: [id])
-  project         Project?         @relation(fields: [project_id], references: [id])
+  project         Project          @relation(fields: [project_id], references: [id])
   user            User             @relation(fields: [user_id], references: [id])
 
   created_at DateTime @default(now())

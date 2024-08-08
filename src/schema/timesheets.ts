@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 export const UpdateTimesheetsSchema = z.object({
   project_id: z.string().uuid(),
-  user_id: z.string().uuid().optional(),
   timesheets: z.array(
     z
       .object({
@@ -13,7 +12,7 @@ export const UpdateTimesheetsSchema = z.object({
         minutes: z.number().int().optional(),
         description: z.string().optional(),
         project_category_id: z.string().uuid().optional(),
-        link: z.string().url(),
+        link: z.string().url().optional(),
       })
       .transform((data, ctx) => {
         if (!data.hours && !data.minutes) {
@@ -42,7 +41,6 @@ export const GetTimesheetsSchema = z.object({
 
 export const UpdateTimesheetStatusSchema = z.object({
   project_id: z.string().uuid(),
-  user_id: z.string().uuid(),
   timesheets: z.array(
     z
       .object({

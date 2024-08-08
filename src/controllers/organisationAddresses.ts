@@ -2,7 +2,8 @@ import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
 import { HttpException } from 'exceptions/http-exception';
 import { Request, Response } from 'express';
-import { prismaClient } from 'index';
+import { organisationAddressModel } from 'models';
+import { sendResponse } from 'response-hook';
 import {
   CreateOrganisationAddressSchema,
   DeleteOrganisationAddressSchema,
@@ -12,28 +13,15 @@ import {
 
 export const createAddress = async (req: Request, res: Response) => {
   const validatedBody = CreateOrganisationAddressSchema.parse(req.body);
+  const address = await organisationAddressModel.createAddress(validatedBody);
 
-  const address = await prismaClient.organisationAddress.create({
-    data: validatedBody,
-  });
-
-  if (validatedBody.is_default) {
-    await prismaClient.organisationAddress.updateMany({
-      where: {
-        NOT: { id: address.id },
-        organisation_id: validatedBody.organisation_id,
-        is_default: true,
-      },
-      data: { is_default: false },
-    });
-  }
-
-  res.json(address);
+  sendResponse(res, address);
 };
 
 export const updateAddress = async (req: Request, res: Response) => {
-  const { organisation_address_id, is_default, ...updateData } =
-    UpdateOrganisationAddressSchema.parse(req.body);
+  const { organisation_address_id, ...updateData } = UpdateOrganisationAddressSchema.parse(
+    req.body,
+  );
 
   if (Object.keys(updateData).length === 0) {
     throw new HttpException(
@@ -44,33 +32,23 @@ export const updateAddress = async (req: Request, res: Response) => {
     );
   }
 
-  const address = await prismaClient.organisationAddress.update({
-    where: { id: organisation_address_id },
-    data: {
-      ...updateData,
-      ...(typeof is_default === 'boolean' ? { is_default } : {}),
-    },
-  });
+  const address = await organisationAddressModel.updateAddress(organisation_address_id, updateData);
 
-  res.json(address);
+  sendResponse(res, address);
 };
 
 export const deleteAddress = async (req: Request, res: Response) => {
   const validatedBody = DeleteOrganisationAddressSchema.parse(req.body);
 
-  await prismaClient.organisationAddress.delete({
-    where: { id: validatedBody.organisation_address_id },
-  });
+  await organisationAddressModel.deleteAddress(validatedBody.organisation_address_id);
 
-  res.json();
+  sendResponse(res);
 };
 
 export const getAddresses = async (req: Request, res: Response) => {
   const validatedParams = GetOrganisationAddressesSchema.parse(req.params);
 
-  const addresses = await prismaClient.organisationAddress.findMany({
-    where: { organisation_id: validatedParams.organisation_id },
-  });
+  const addresses = await organisationAddressModel.getAddresses(validatedParams.organisation_id);
 
-  res.json(addresses);
+  sendResponse(res, addresses);
 };
