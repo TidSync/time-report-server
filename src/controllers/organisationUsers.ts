@@ -16,6 +16,7 @@ import { encryptPassword } from 'utils/password';
 import { createSessionToken } from 'utils/token';
 import { organisationModel, organisationUserModel, userModel } from 'models';
 import { sendResponse } from 'response-hook';
+import { APP_URL } from 'secrets';
 
 const chance = new Chance();
 
@@ -67,7 +68,7 @@ export const inviteUserToOrganisation = async (req: Request, res: Response) => {
       validatedBody.user_email,
       '',
       encryptPassword(chance.string()),
-      `${req.protocol}://${req.get('host')}`,
+      APP_URL,
     );
   }
 
@@ -92,7 +93,7 @@ export const inviteUserToOrganisation = async (req: Request, res: Response) => {
     organisation.name,
     validatedBody.organisation_id,
     user.id,
-    `${req.protocol}://${req.get('host')}`,
+    APP_URL,
   );
 
   sendResponse(res, organisationUser);

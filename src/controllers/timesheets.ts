@@ -15,7 +15,6 @@ import { canSeeAllUnderProjectEntities } from 'utils/permissions';
 export const modifyTimesheets = async (req: Request, res: Response) => {
   const { project_id, timesheets } = UpdateTimesheetsSchema.parse(req.body);
 
-  console.log('here');
   const transaction = await timesheetModel.modifyTimesheets(req.user!.id, project_id, timesheets);
 
   sendResponse(res, transaction);

@@ -1,5 +1,5 @@
 import { prismaClient } from 'index';
-import { InvitationStatus, Prisma, User } from '@prisma/client';
+import { InvitationStatus, Prisma } from '@prisma/client';
 import { HttpException } from 'exceptions/http-exception';
 import { ErrorMessage } from 'constants/api-messages';
 import { ErrorCode, StatusCode } from 'constants/api-rest-codes';

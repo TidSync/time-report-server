@@ -11,6 +11,10 @@ export const GetOrganisationSchema = z.object({
   organisation_id: z.string().uuid(),
 });
 
+export const UploadOrganisationPhotoSchema = z.object({
+  organisation_id: z.string().uuid(),
+});
+
 export const UpdateOrganisationSchema = GetOrganisationSchema.extend({
   name: z.string().optional(),
 });

@@ -6,7 +6,7 @@ import { stripe } from 'index';
 import { organisationModel, paymentModel } from 'models';
 import { sendResponse } from 'response-hook';
 import { CheckoutSchema } from 'schema/OrganisationBillings';
-import { STRIPE_WEBHOOK_SECRET } from 'secrets';
+import { APP_URL, STRIPE_WEBHOOK_SECRET } from 'secrets';
 import Stripe from 'stripe';
 
 export const checkout = async (req: Request, res: Response) => {
@@ -77,8 +77,8 @@ export const checkout = async (req: Request, res: Response) => {
       trial_period_days: 30,
     },
     line_items: [{ price: validatedBody.price_id, quantity: 1 }],
-    success_url: `${req.protocol}://${req.get('host')}/api/organisations/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${req.protocol}://${req.get('host')}/api/organisations/billing/error?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${APP_URL}/api/organisations/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${APP_URL}/api/organisations/billing/error?session_id={CHECKOUT_SESSION_ID}`,
   });
 
   sendResponse(res, session);

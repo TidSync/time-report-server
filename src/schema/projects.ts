@@ -12,6 +12,10 @@ export const GetProjectSchema = z.object({
   project_id: z.string().uuid(),
 });
 
+export const UploadProjectPhotoSchema = z.object({
+  project_id: z.string().uuid(),
+});
+
 export const DeleteProjectSchema = z.object({
   project_id: z.string().uuid(),
 });

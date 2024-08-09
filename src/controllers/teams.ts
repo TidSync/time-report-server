@@ -10,7 +10,11 @@ import {
   DeleteTeamSchema,
   ListTeamsSchema,
   UpdateTeamSchema,
+  UploadTeamPhotoSchema,
 } from 'schema/teams';
+import fs from 'fs';
+import { APP_URL } from 'secrets';
+import sharp from 'sharp';
 
 export const createTeam = async (req: Request, res: Response) => {
   const validatedBody = CreateTeamSchema.parse(req.body);
@@ -39,6 +43,32 @@ export const updateTeam = async (req: Request, res: Response) => {
   const team = await teamModel.updateTeam(team_id, updateData);
 
   sendResponse(res, team);
+};
+
+export const uploadTeamPhoto = async (req: Request, res: Response) => {
+  const { team_id } = UploadTeamPhotoSchema.parse(req.body);
+
+  try {
+    if (!fs.existsSync('files/team')) {
+      fs.mkdirSync('files/team', { recursive: true });
+    }
+
+    const [user] = await Promise.all([
+      teamModel.updateTeam(team_id, {
+        photo: `${APP_URL}/files/team/${team_id}.jpeg`,
+      }),
+      sharp(req.file!.buffer).resize(200, 200).jpeg().toFile(`files/team/${team_id}.jpeg`),
+    ]);
+
+    sendResponse(res, user);
+  } catch (error) {
+    throw new HttpException(
+      ErrorMessage.ERROR_UPLOADING_IMAGE,
+      ErrorCode.ERROR_UPLOADING_IMAGE,
+      StatusCode.INTERNAL_SERVER_ERROR,
+      error,
+    );
+  }
 };
 
 export const removeTeam = async (req: Request, res: Response) => {

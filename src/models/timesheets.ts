@@ -19,8 +19,6 @@ export const modifyTimesheets = async (
   project_id: string,
   timesheets: Timesheet[],
 ) => {
-  console.log('timesheets', timesheets);
-
   return prismaClient.$transaction(async (tx) => {
     const promises = [];
 
@@ -62,8 +60,6 @@ export const modifyTimesheets = async (
         promises.push(data);
       }
     }
-
-    console.log('promises', promises);
 
     return Promise.all(promises);
   });

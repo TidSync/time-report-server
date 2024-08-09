@@ -16,6 +16,7 @@ import { TokenType } from '@prisma/client';
 import { encryptPassword, isPasswordCorrect } from 'utils/password';
 import { userModel, userTokenModel } from 'models';
 import { sendResponse } from 'response-hook';
+import { APP_URL } from 'secrets';
 
 export const signup = async (req: Request, res: Response) => {
   const { email, password, name } = SignupSchema.parse(req.body);
@@ -31,7 +32,7 @@ export const signup = async (req: Request, res: Response) => {
     );
   }
 
-  user = await userModel.createUser(email, name, password, `${req.protocol}://${req.get('host')}`);
+  user = await userModel.createUser(email, name, password, APP_URL);
 
   const sessionToken = createSessionToken({ userId: user.id });
 
@@ -67,12 +68,7 @@ export const sendVerification = async (req: Request, res: Response) => {
 
   await Promise.all([
     await userTokenModel.createUserToken(user.id, token, TokenType.VERIFY_EMAIL),
-    await sendVerificationEmail(
-      user.email,
-      user.name,
-      token,
-      `${req.protocol}://${req.get('host')}`,
-    ),
+    await sendVerificationEmail(user.email, user.name, token, APP_URL),
   ]);
 
   sendResponse(res);
@@ -150,12 +146,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
   await Promise.all([
     await userTokenModel.createUserToken(user.id, token, TokenType.RESET_PASSWORD),
-    await sendResetPasswordEmail(
-      user.email,
-      user.name,
-      token,
-      `${req.protocol}://${req.get('host')}`,
-    ),
+    await sendResetPasswordEmail(user.email, user.name, token, APP_URL),
   ]);
 
   sendResponse(res);

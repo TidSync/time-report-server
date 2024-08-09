@@ -34,4 +34,8 @@ export enum ErrorMessage {
   DATABASE_ENTRY_EXISTS = 'Entry already exists',
   DATABASE_PROCESS_ERROR = 'Could not execute operation on database',
   SOMETHING_WENT_WRONG = 'Something went wrong.',
+  ERROR_RECEIVING_IMAGE = 'Error receiving image',
+  BUFFER_MISSING = 'Buffer Missing',
+  WRONG_TYPE = 'Buffer Missing',
+  ERROR_UPLOADING_IMAGE = 'Error uploading image',
 }

@@ -1,6 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["relationJoins", "omitApi"]
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -13,6 +13,7 @@ model User {
 
   email       String  @unique
   name        String
+  photo       String?
   password    String
   is_verified Boolean @default(false)
   is_deleted  Boolean @default(false)
@@ -81,6 +82,7 @@ model Organisation {
   id String @id @default(uuid())
 
   name                    String
+  photo                   String?
   customer_billing_id     String?
   subscription_billing_id String?
   subscription_ends_at    DateTime?
@@ -102,6 +104,7 @@ model Team {
   organisation_id String
 
   name  String
+  photo String?
   color String
 
   organisation Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
@@ -118,6 +121,7 @@ model Project {
   organisation_id String
 
   name        String
+  photo       String?
   description String
   color       String
 
