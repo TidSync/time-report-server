@@ -7,6 +7,7 @@ export const CreateTeamSchema = z.object({
   organisation_id: z.string().uuid(),
 });
 export const GetTeamSchema = z.object({ team_id: z.string().uuid() });
+export const UploadTeamPhotoSchema = z.object({ team_id: z.string().uuid() });
 export const DeleteTeamSchema = z.object({ team_id: z.string().uuid() });
 export const ListTeamsSchema = z.object({ organisation_id: z.string().uuid() });
 export const UpdateTeamSchema = z.object({

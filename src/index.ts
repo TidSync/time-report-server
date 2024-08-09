@@ -9,6 +9,7 @@ import { errorHandler as cb } from 'error-handler';
 
 const app: Express = express();
 
+app.use('/files', express.static('files'));
 app.post('/listen/payments', express.raw({ type: 'application/json' }), cb(listenPaymentEvents));
 app.use(express.json());
 
@@ -16,7 +17,6 @@ app.use('/api', rootRouter);
 app.use(errorMiddleware);
 
 export const stripe = new Stripe(STRIPE_SECRET_KEY);
-
 export const prismaClient = new PrismaClient({
   log: ['query'],
 });

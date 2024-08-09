@@ -10,7 +10,11 @@ import {
   DeleteProjectSchema,
   ListProjectsSchema,
   UpdateProjectSchema,
+  UploadProjectPhotoSchema,
 } from 'schema/projects';
+import fs from 'fs';
+import { APP_URL } from 'secrets';
+import sharp from 'sharp';
 
 export const createProject = async (req: Request, res: Response) => {
   const validatedBody = CreateProjectSchema.parse(req.body);
@@ -50,6 +54,32 @@ export const updateProject = async (req: Request, res: Response) => {
   const project = await projectModel.updateProject(project_id, updateData);
 
   sendResponse(res, project);
+};
+
+export const uploadProjectPhoto = async (req: Request, res: Response) => {
+  const { project_id } = UploadProjectPhotoSchema.parse(req.body);
+
+  try {
+    if (!fs.existsSync('files/project')) {
+      fs.mkdirSync('files/project', { recursive: true });
+    }
+
+    const [user] = await Promise.all([
+      projectModel.updateProject(project_id, {
+        photo: `${APP_URL}/files/project/${project_id}.jpeg`,
+      }),
+      sharp(req.file!.buffer).resize(200, 200).jpeg().toFile(`files/project/${project_id}.jpeg`),
+    ]);
+
+    sendResponse(res, user);
+  } catch (error) {
+    throw new HttpException(
+      ErrorMessage.ERROR_UPLOADING_IMAGE,
+      ErrorCode.ERROR_UPLOADING_IMAGE,
+      StatusCode.INTERNAL_SERVER_ERROR,
+      error,
+    );
+  }
 };
 
 export const listProjects = async (req: Request, res: Response) => {

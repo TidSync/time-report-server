@@ -10,7 +10,11 @@ import {
   GetOrganisationSchema,
   UpdateOrganisationSchema,
   RemoveOrganisationSchema,
+  UploadOrganisationPhotoSchema,
 } from 'schema/organisations';
+import { APP_URL } from 'secrets';
+import fs from 'fs';
+import sharp from 'sharp';
 
 export const createOrganisation = async (req: Request, res: Response) => {
   const validatedData = CreateOrganisationSchema.parse(req.body);
@@ -61,6 +65,35 @@ export const updateOrganisation = async (req: Request, res: Response) => {
   const organisation = await organisationModel.updateOrganisation(organisation_id, updateData);
 
   sendResponse(res, organisation);
+};
+
+export const uploadOrganisationPhoto = async (req: Request, res: Response) => {
+  const { organisation_id } = UploadOrganisationPhotoSchema.parse(req.body);
+
+  try {
+    if (!fs.existsSync('files/organisation')) {
+      fs.mkdirSync('files/organisation', { recursive: true });
+    }
+
+    const [user] = await Promise.all([
+      organisationModel.updateOrganisation(organisation_id, {
+        photo: `${APP_URL}/files/organisation/${organisation_id}.jpeg`,
+      }),
+      sharp(req.file!.buffer)
+        .resize(200, 200)
+        .jpeg()
+        .toFile(`files/organisation/${organisation_id}.jpeg`),
+    ]);
+
+    sendResponse(res, user);
+  } catch (error) {
+    throw new HttpException(
+      ErrorMessage.ERROR_UPLOADING_IMAGE,
+      ErrorCode.ERROR_UPLOADING_IMAGE,
+      StatusCode.INTERNAL_SERVER_ERROR,
+      error,
+    );
+  }
 };
 
 export const removeOrganisation = async (req: Request, res: Response) => {
