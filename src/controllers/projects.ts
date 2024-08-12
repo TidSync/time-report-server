@@ -28,7 +28,7 @@ export const createProject = async (req: Request, res: Response) => {
 };
 
 export const getProject = async (req: Request, res: Response) => {
-  sendResponse(res, req.project);
+  sendResponse(res, { project: req.project, users: req.projectUsers });
 };
 
 export const removeProject = async (req: Request, res: Response) => {

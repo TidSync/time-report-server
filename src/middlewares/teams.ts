@@ -11,7 +11,7 @@ export const isTeamUser = async (req: Request, _res: Response, next: NextFunctio
       return next();
     }
 
-    const teamUser = req.team!.users.find((user) => user.id === req.user!.id);
+    const teamUser = req.teamUsers!.find((user) => user.id === req.user!.id);
 
     if (!teamUser) {
       throw new Error();

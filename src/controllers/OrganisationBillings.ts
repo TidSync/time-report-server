@@ -11,9 +11,9 @@ import Stripe from 'stripe';
 
 export const checkout = async (req: Request, res: Response) => {
   const validatedBody = CheckoutSchema.parse(req.body);
-  const organisation = await organisationModel.getOrganisation(validatedBody.organisation_id);
+  const orgData = await organisationModel.getOrganisation(validatedBody.organisation_id);
 
-  if (!organisation) {
+  if (!orgData) {
     throw new HttpException(
       ErrorMessage.ORGANISATION_NOT_FOUND,
       ErrorCode.ORGANISATION_NOT_FOUND,
@@ -22,7 +22,7 @@ export const checkout = async (req: Request, res: Response) => {
     );
   }
 
-  if (organisation.addresses.length === 0) {
+  if (orgData.addresses.length === 0) {
     throw new HttpException(
       ErrorMessage.ORGANISATION_MUST_HAVE_ADDRESS,
       ErrorCode.ORGANISATION_MUST_HAVE_ADDRESS,
@@ -32,7 +32,7 @@ export const checkout = async (req: Request, res: Response) => {
   }
 
   let customer: Stripe.Customer;
-  const address = organisation.addresses[0];
+  const address = orgData.addresses[0];
   const createCustomerData = {
     name: req.user!.name,
     email: address.email,
@@ -41,13 +41,13 @@ export const checkout = async (req: Request, res: Response) => {
     postal_code: address.postal_code,
     city: address.city,
     country: address.country,
-    organisation_id: organisation.id,
+    organisation_id: orgData.organisation.id,
   };
 
-  if (!organisation.customer_billing_id) {
+  if (!orgData.organisation.customer_billing_id) {
     customer = await paymentModel.createCustomer(createCustomerData);
   } else {
-    const stripeCustomer = await paymentModel.getCustomer(organisation.customer_billing_id);
+    const stripeCustomer = await paymentModel.getCustomer(orgData.organisation.customer_billing_id);
 
     if (stripeCustomer.deleted) {
       customer = await paymentModel.createCustomer(createCustomerData);
@@ -56,7 +56,7 @@ export const checkout = async (req: Request, res: Response) => {
     }
   }
 
-  if (organisation.customer_billing_id !== customer.id) {
+  if (orgData.organisation.customer_billing_id !== customer.id) {
     await organisationModel.updateOrganisation(validatedBody.organisation_id, {
       customer_billing_id: customer.id,
     });
@@ -68,7 +68,7 @@ export const checkout = async (req: Request, res: Response) => {
     locale: 'auto',
     customer: customer.id,
     subscription_data: {
-      metadata: { organisation_id: organisation.id },
+      metadata: { organisation_id: orgData.organisation.id },
       trial_settings: {
         end_behavior: {
           missing_payment_method: 'pause',

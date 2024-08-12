@@ -9,6 +9,7 @@ import {
   Project,
   Team,
   Timesheet,
+  User,
   UserRole,
 } from '@prisma/client';
 import { FindOrganisationSchema } from 'schema/organisations';
@@ -17,8 +18,10 @@ import { organisationAddressModel, projectCategoryModel, projectModel, teamModel
 declare module 'express' {
   interface Request {
     orgUser?: OrganisationUser;
-    project?: Project & { users: { id: string }[] };
-    team?: Team & { users: { id: string }[] };
+    project?: Project;
+    projectUsers?: User[];
+    team?: Team;
+    teamUsers?: User[];
     timesheet?: Timesheet;
     orgAddress?: OrganisationAddress;
   }
@@ -26,8 +29,10 @@ declare module 'express' {
 
 type UserOrganisationData = {
   organisationId: string;
-  project?: Project & { users: { id: string }[] };
-  team?: Team & { users: { id: string }[] };
+  project?: Project;
+  projectUsers?: User[];
+  team?: Team;
+  teamUsers?: User[];
   timesheet?: Timesheet;
   orgAddress?: OrganisationAddress;
 };
@@ -38,9 +43,9 @@ const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> 
   if (validatedData.organisation_id) {
     return { organisationId: validatedData.organisation_id };
   } else if (validatedData.project_id) {
-    const project = await projectModel.getProject(validatedData.project_id);
+    const projectData = await projectModel.getProject(validatedData.project_id);
 
-    if (!project) {
+    if (!projectData) {
       throw new HttpException(
         ErrorMessage.PROJECT_NOT_FOUND,
         ErrorCode.PROJECT_NOT_FOUND,
@@ -49,11 +54,15 @@ const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> 
       );
     }
 
-    return { organisationId: project.organisation_id, project };
+    return {
+      organisationId: projectData.project.organisation_id,
+      project: projectData.project,
+      projectUsers: projectData.projectUsers,
+    };
   } else if (validatedData.team_id) {
-    const team = await teamModel.getTeam(validatedData.team_id);
+    const teamData = await teamModel.getTeam(validatedData.team_id);
 
-    if (!team) {
+    if (!teamData) {
       throw new HttpException(
         ErrorMessage.TEAM_NOT_FOUND,
         ErrorCode.TEAM_NOT_FOUND,
@@ -62,7 +71,11 @@ const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> 
       );
     }
 
-    return { organisationId: team.organisation_id, team };
+    return {
+      organisationId: teamData.team.organisation_id,
+      team: teamData.team,
+      teamUsers: teamData.teamUsers,
+    };
   } else if (validatedData.organisation_address_id) {
     const address = await organisationAddressModel.getAddress(
       validatedData.organisation_address_id,
@@ -92,7 +105,10 @@ const getUserOrganisation = async (req: Request): Promise<UserOrganisationData> 
       );
     }
 
-    return { organisationId: projectCategory.project.organisation_id };
+    return {
+      organisationId: projectCategory.project.organisation_id,
+      project: projectCategory.project,
+    };
   }
 
   throw new Error();
@@ -106,7 +122,7 @@ const runMiddlewareWithFilter = async (
   try {
     const { organisationId, ...userOrgData } = await getUserOrganisation(req);
 
-    const orgUser = req.user!.organisation_user.find((organisationUser) =>
+    const orgUser = req.userOrganisations!.find((organisationUser) =>
       filter(organisationUser, organisationId),
     );
 
@@ -117,7 +133,9 @@ const runMiddlewareWithFilter = async (
     }
 
     req.project = userOrgData.project;
+    req.projectUsers = userOrgData.projectUsers;
     req.team = userOrgData.team;
+    req.teamUsers = userOrgData.teamUsers;
     req.orgUser = orgUser;
 
     next();

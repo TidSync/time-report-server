@@ -25,7 +25,7 @@ export const createTeam = async (req: Request, res: Response) => {
 };
 
 export const getTeam = async (req: Request, res: Response) => {
-  sendResponse(res, req.team);
+  sendResponse(res, { team: req.team, users: req.teamUsers });
 };
 
 export const updateTeam = async (req: Request, res: Response) => {

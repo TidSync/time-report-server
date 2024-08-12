@@ -11,7 +11,7 @@ export const isProjectUser = async (req: Request, _res: Response, next: NextFunc
       return next();
     }
 
-    const projectUser = req.project!.users.find((user) => user.id === req.user!.id);
+    const projectUser = req.projectUsers!.find((user) => user.id === req.user!.id);
 
     if (!projectUser) {
       throw new Error();

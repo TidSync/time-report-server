@@ -9,11 +9,12 @@ import { JWT_SECRET } from 'secrets';
 
 declare module 'express' {
   interface Request {
-    user?: User & { organisation_user: OrganisationUser[] };
+    user?: User;
+    userOrganisations?: OrganisationUser[];
   }
 }
 
-export const authMidd = async (req: Request, res: Response, next: NextFunction) => {
+export const authMidd = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     const token = req.headers.authorization;
 
@@ -22,15 +23,16 @@ export const authMidd = async (req: Request, res: Response, next: NextFunction) 
     }
 
     const payload = jwt.verify(token, JWT_SECRET) as any;
-    const user = await userModel.getUser(payload.userId);
+    const userData = await userModel.getUser(payload.userId);
 
-    if (!user) {
+    if (!userData) {
       throw new Error();
-    } else if (!user.is_verified) {
+    } else if (!userData.user.is_verified) {
       throw new Error(ErrorMessage.USER_NOT_VERIFIED);
     }
 
-    req.user = user;
+    req.user = userData.user;
+    req.userOrganisations = userData.userOrganisations;
 
     next();
   } catch (error: any) {

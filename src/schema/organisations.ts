@@ -88,8 +88,8 @@ export const CreateOrganisationAddressSchema = z.object({
 export const UpdateOrganisationAddressSchema = z.object({
   organisation_address_id: z.string(),
   is_default: z.boolean().optional(),
-  line_one: z.string().optional(),
-  line_two: z.string().optional().optional(),
+  line1: z.string().optional(),
+  line2: z.string().optional().optional(),
   city: z.string().optional(),
   country: z
     .string()

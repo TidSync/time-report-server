@@ -19,7 +19,7 @@ import sharp from 'sharp';
 export const createOrganisation = async (req: Request, res: Response) => {
   const validatedData = CreateOrganisationSchema.parse(req.body);
 
-  const organisation = await organisationModel.createOrganisation({
+  const organisation = await organisationModel.createOrganisation(req.user!.id, {
     name: validatedData.name,
     organisation_user: {
       create: {

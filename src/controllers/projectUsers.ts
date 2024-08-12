@@ -24,7 +24,7 @@ export const addUserToProject = async (req: Request, res: Response) => {
     );
   }
 
-  await projectModel.updateProject(project_id, { users: { connect: { id: user_id } } });
+  await projectModel.addProjectUser(project_id, user);
 
   sendResponse(res);
 };
@@ -39,10 +39,7 @@ export const getProjectUsers = async (req: Request, res: Response) => {
 export const removeProjectUser = async (req: Request, res: Response) => {
   const validatedBody = RemoveProjectUserSchema.parse(req.body);
 
-  projectModel.updateProject(validatedBody.project_id, {
-    users: { disconnect: { id: validatedBody.user_id } },
-    timesheet: { deleteMany: { user_id: validatedBody.user_id } },
-  });
+  await projectModel.removeProjectUser(validatedBody.project_id, validatedBody.user_id);
 
   sendResponse(res);
 };

@@ -1,5 +1,5 @@
 import { Organisation, SubscriptionStatus } from '@prisma/client';
-import { prismaClient, stripe } from 'index';
+import { stripe } from 'index';
 import { organisationModel } from 'models';
 import Stripe from 'stripe';
 
@@ -37,50 +37,50 @@ export const handleSubscriptionEvents = async (
     return;
   }
 
-  const organisation = await organisationModel.getOrganisation(organisation_id);
+  const orgData = await organisationModel.getOrganisation(organisation_id);
 
-  if (!organisation) {
+  if (!orgData) {
     return;
   }
 
   const itemsToUpdate: Partial<Organisation> = {};
 
-  if (organisation.subscription_billing_id !== subInfo.id) {
+  if (orgData.organisation.subscription_billing_id !== subInfo.id) {
     itemsToUpdate.subscription_billing_id = subInfo.id;
   }
 
   if (
-    organisation.subscription_ends_at?.toISOString() !==
+    orgData.organisation.subscription_ends_at?.toISOString() !==
     new Date(subInfo.current_period_end * 1000).toISOString()
   ) {
     itemsToUpdate.subscription_ends_at = new Date(subInfo.current_period_end * 1000);
   }
 
-  if (!organisation.subscription_status) {
+  if (!orgData.organisation.subscription_status) {
     itemsToUpdate.subscription_status =
       subInfo.status === 'active' ? SubscriptionStatus.ACTIVE : SubscriptionStatus.INACTIVE;
   } else if (
     subInfo.status !== 'active' &&
-    organisation.subscription_status === SubscriptionStatus.ACTIVE
+    orgData.organisation.subscription_status === SubscriptionStatus.ACTIVE
   ) {
     itemsToUpdate.subscription_status = SubscriptionStatus.INACTIVE;
   } else if (
     subInfo.status === 'active' &&
-    organisation.subscription_status === SubscriptionStatus.INACTIVE
+    orgData.organisation.subscription_status === SubscriptionStatus.INACTIVE
   ) {
     itemsToUpdate.subscription_status = SubscriptionStatus.ACTIVE;
   }
 
   if (Object.keys(itemsToUpdate).length > 0) {
-    await prismaClient.organisation.update({ where: { id: organisation_id }, data: itemsToUpdate });
+    await organisationModel.updateOrganisation(organisation_id, itemsToUpdate);
   }
 };
 
 export const handleCustomerEvents = async (stripeData: Stripe.CustomerDeletedEvent.Data) => {
   const { object: custInfo } = stripeData;
 
-  await prismaClient.organisation.updateMany({
-    where: { customer_billing_id: custInfo.id },
-    data: { customer_billing_id: null },
-  });
+  await organisationModel.updateOrganisations(
+    { customer_billing_id: custInfo.id },
+    { customer_billing_id: null },
+  );
 };

@@ -22,7 +22,10 @@ export const createProjectCategory = async (req: Request, res: Response) => {
 export const removeProjectCategory = async (req: Request, res: Response) => {
   const validatedBody = RemoveProjectCategorySchema.parse(req.body);
 
-  await projectCategoryModel.deleteProjectCategory(validatedBody.project_category_id);
+  await projectCategoryModel.deleteProjectCategory(
+    validatedBody.project_category_id,
+    req.project!.id,
+  );
 
   sendResponse(res);
 };
@@ -41,6 +44,7 @@ export const updateProjectCategory = async (req: Request, res: Response) => {
 
   const category = await projectCategoryModel.updateProjectCategory(
     project_category_id,
+    req.project!.id,
     updateData,
   );
 

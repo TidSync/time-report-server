@@ -4,6 +4,12 @@ import { Prisma, TokenType, UserRole } from '@prisma/client';
 import { sendVerificationEmail } from 'utils/email';
 import { createValidationToken } from 'utils/token';
 import Chance from 'chance';
+import {
+  getOrSetRedisData,
+  deleteRedisData,
+  setRedisData,
+  updateRedisArrayData,
+} from 'utils/redis';
 
 const chance = new Chance();
 
@@ -15,14 +21,16 @@ export const createUser = async (
 ) => {
   const verificationToken = createValidationToken();
 
-  const user = await prismaClient.user.create({
-    data: {
-      name,
-      email,
-      password: encryptPassword(password),
-      user_token: { create: { token: verificationToken, token_type: TokenType.VERIFY_EMAIL } },
-    },
-  });
+  const user = await setRedisData(['user', '$id'], () =>
+    prismaClient.user.create({
+      data: {
+        name,
+        email,
+        password: encryptPassword(password),
+        user_token: { create: { token: verificationToken, token_type: TokenType.VERIFY_EMAIL } },
+      },
+    }),
+  );
 
   await sendVerificationEmail(email, name, verificationToken, targetUrl);
 
@@ -30,6 +38,8 @@ export const createUser = async (
 };
 
 export const deleteUser = async (user_id: string) => {
+  deleteRedisData(`user:${user_id}`);
+
   return prismaClient.$transaction([
     prismaClient.user.update({
       where: { id: user_id },
@@ -48,14 +58,48 @@ export const deleteUser = async (user_id: string) => {
 };
 
 export const updateUser = async (id: string, updateData: Prisma.UserUncheckedUpdateInput) => {
-  return prismaClient.user.update({ where: { id, is_deleted: false }, data: updateData });
+  return setRedisData([`user:${id}`], async () => {
+    {
+      const userData = await prismaClient.user.update({
+        where: { id, is_deleted: false },
+        data: updateData,
+        include: { projects: { select: { id: true } }, teams: { select: { id: true } } },
+      });
+
+      const { projects, teams, ...user } = userData;
+
+      projects.forEach((project) =>
+        updateRedisArrayData(`projectUsers:${project.id}`, { id: user.id }, () =>
+          Promise.resolve(user),
+        ),
+      );
+      teams.forEach((team) =>
+        updateRedisArrayData(`teamUsers:${team.id}`, { id: user.id }, () => Promise.resolve(user)),
+      );
+
+      return user;
+    }
+  });
 };
 
 export const getUser = async (id: string) => {
-  return prismaClient.user.findFirst({
-    where: { id, is_deleted: false },
-    include: { organisation_user: true },
-  });
+  return getOrSetRedisData(
+    { user: `user:${id}`, userOrganisations: `userOrganisations:${id}` },
+    async () => {
+      const user = await prismaClient.user.findFirst({
+        where: { id, is_deleted: false },
+        include: { organisation_user: true },
+      });
+
+      if (!user) {
+        return user;
+      }
+
+      const { organisation_user, ...userData } = user;
+
+      return { user: userData, userOrganisations: organisation_user };
+    },
+  );
 };
 
 export const getUserByEmail = async (email: string) => {
@@ -69,13 +113,17 @@ export const getUserInOrganisation = async (user_id: string, organisation_id: st
 };
 
 export const getProjectUsers = async (project_id: string) => {
-  return prismaClient.user.findMany({
-    where: { projects: { some: { id: project_id } }, is_deleted: false },
-  });
+  return getOrSetRedisData(`projectUsers:${project_id}`, () =>
+    prismaClient.user.findMany({
+      where: { projects: { some: { id: project_id } }, is_deleted: false },
+    }),
+  );
 };
 
 export const getTeamUsers = async (team_id: string) => {
-  return prismaClient.user.findMany({
-    where: { teams: { some: { id: team_id } }, is_deleted: false },
-  });
+  return getOrSetRedisData(`teamUsers:${team_id}`, () =>
+    prismaClient.user.findMany({
+      where: { teams: { some: { id: team_id } }, is_deleted: false },
+    }),
+  );
 };
