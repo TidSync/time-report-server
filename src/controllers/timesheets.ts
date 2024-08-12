@@ -23,7 +23,11 @@ export const modifyTimesheets = async (req: Request, res: Response) => {
 export const deleteTimesheets = async (req: Request, res: Response) => {
   const validatedData = DeleteTimesheetsSchema.parse(req.body);
 
-  await timesheetModel.deleteTimesheets(req.user!.id, validatedData.timesheets);
+  await timesheetModel.deleteTimesheets(
+    req.user!.id,
+    validatedData.project_id,
+    validatedData.timesheets,
+  );
 
   sendResponse(res);
 };

@@ -1,97 +1,79 @@
 import { prismaClient } from 'index';
-import { InvitationStatus, Prisma } from '@prisma/client';
-import { HttpException } from 'exceptions/http-exception';
-import { ErrorMessage } from 'constants/api-messages';
-import { ErrorCode, StatusCode } from 'constants/api-rest-codes';
-import { encryptPassword } from 'utils/password';
+import { Prisma } from '@prisma/client';
+import {
+  addRedisArrayData,
+  deleteRedisArrayData,
+  deleteRedisData,
+  getOrSetRedisData,
+  setRedisData,
+} from 'utils/redis';
 
-export const createOrganisation = async (data: Prisma.OrganisationCreateInput) => {
-  return prismaClient.organisation.create({ data });
+export const createOrganisation = async (user_id: string, data: Prisma.OrganisationCreateInput) => {
+  const organisation = await setRedisData(['organisation', '$id'], () =>
+    prismaClient.organisation.create({
+      data,
+      include: { organisation_user: { where: { user_id: user_id } } },
+    }),
+  );
+
+  addRedisArrayData(`userOrganisations:${user_id}`, organisation.organisation_user[0]);
+
+  return organisation;
 };
 
 export const updateOrganisation = async (
   organisation_id: string,
   updateData: Prisma.OrganisationUncheckedUpdateInput,
 ) => {
-  return prismaClient.organisation.update({ where: { id: organisation_id }, data: updateData });
+  return setRedisData([`organisation:${organisation_id}`], () =>
+    prismaClient.organisation.update({ where: { id: organisation_id }, data: updateData }),
+  );
+};
+
+export const updateOrganisations = async (
+  where: Prisma.OrganisationWhereInput,
+  data: Prisma.OrganisationUpdateInput,
+) => {
+  await prismaClient.organisation.updateMany({ where, data });
+
+  const organisations = await prismaClient.organisation.findMany({ where });
+
+  organisations.forEach((org) =>
+    setRedisData([`organisation:${org.id}`], () => new Promise((resolve) => resolve(org))),
+  );
+
+  return organisations;
 };
 
 export const deleteOrganisation = async (organisation_id: string) => {
+  deleteRedisData(`organisation:${organisation_id}`);
+  deleteRedisArrayData(`userOrganisations:${organisation_id}`, {
+    organisation_id: [organisation_id],
+  });
+
   return prismaClient.organisation.delete({ where: { id: organisation_id } });
 };
 
 export const getOrganisationByProjectId = async (id: string) => {
-  const project = await prismaClient.project.findFirst({
-    where: { id },
-    include: { organisation: true },
-  });
-
-  if (project) {
-    return project.organisation;
-  }
-
-  return null;
+  return prismaClient.organisation.findFirst({ where: { projects: { some: { id } } } });
 };
 
 export const getOrganisation = async (id: string) => {
-  const organisation = await prismaClient.organisation.findFirst({
-    where: { id },
-    include: { addresses: { where: { is_default: true } } },
-  });
+  return getOrSetRedisData(
+    { organisation: `organisation:${id}`, addresses: `addresses:${id}` },
+    async () => {
+      const organisation = await prismaClient.organisation.findFirst({
+        where: { id },
+        include: { addresses: { orderBy: { is_default: 'desc' } } },
+      });
 
-  return organisation;
-};
-
-export const confirmOrganisationInvitation = async (
-  user_id: string,
-  organisation_id: string,
-  userData: { name?: string; password?: string },
-) => {
-  return prismaClient.$transaction(async (tx) => {
-    const organisationUser = await tx.organisationUser.findFirstOrThrow({
-      where: { organisation_id, user_id },
-      include: { user: true },
-    });
-    let user = organisationUser.user;
-
-    if (organisationUser.invitation_status !== InvitationStatus.PENDING) {
-      throw new HttpException(
-        ErrorMessage.USER_ALREADY_VERIFIED,
-        ErrorCode.ORGANISATION_USER_ALREADY_VERIFIED,
-        StatusCode.BAD_REQUEST,
-        null,
-      );
-    }
-
-    if (!organisationUser.user.name) {
-      if (!userData.name || !userData.password) {
-        throw new HttpException(
-          ErrorMessage.USER_INFO_MISSING,
-          ErrorCode.USER_INFO_MISSING,
-          StatusCode.UNPROCESSABLE_CONTENT,
-          null,
-        );
+      if (!organisation) {
+        return organisation;
       }
 
-      user = await tx.user.update({
-        where: { id: organisationUser.user_id },
-        data: {
-          name: userData.name,
-          password: encryptPassword(userData.password),
-          is_verified: true,
-          user_token: { deleteMany: { user_id } },
-        },
-      });
-    }
+      const { addresses, ...organisationData } = organisation;
 
-    await tx.organisationUser.update({
-      where: {
-        user_id_organisation_id: { user_id, organisation_id },
-        invitation_status: InvitationStatus.PENDING,
-      },
-      data: { invitation_status: InvitationStatus.ACCEPTED },
-    });
-
-    return user;
-  });
+      return { organisation: organisationData, addresses };
+    },
+  );
 };

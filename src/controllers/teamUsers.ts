@@ -20,7 +20,7 @@ export const addTeamUser = async (req: Request, res: Response) => {
     );
   }
 
-  await teamModel.updateTeam(team_id, { users: { connect: { id: user_id } } });
+  await teamModel.addTeamUser(team_id, user);
 
   sendResponse(res);
 };
@@ -28,9 +28,7 @@ export const addTeamUser = async (req: Request, res: Response) => {
 export const removeTeamUser = async (req: Request, res: Response) => {
   const validatedBody = RemoveTeamUserSchema.parse(req.body);
 
-  await teamModel.updateTeam(validatedBody.team_id, {
-    users: { disconnect: { id: validatedBody.user_id } },
-  });
+  await teamModel.removeTeamUser(validatedBody.team_id, validatedBody.user_id);
 
   sendResponse(res);
 };

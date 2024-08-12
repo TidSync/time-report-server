@@ -6,6 +6,7 @@ import { errorMiddleware } from 'middlewares/errors';
 import Stripe from 'stripe';
 import { listenPaymentEvents } from 'controllers/OrganisationBillings';
 import { errorHandler as cb } from 'error-handler';
+import { redisClient } from 'utils/redis';
 
 const app: Express = express();
 
@@ -33,7 +34,13 @@ export const prismaClient = new PrismaClient({
 //   },
 // });
 
-app.listen(APP_PORT, () => {
+app.listen(APP_PORT, async () => {
   // Comment here
   console.log(`now listening on port ${APP_PORT}`);
+
+  try {
+    await redisClient.connect();
+  } catch (error) {
+    console.log("couldn't connect to redis");
+  }
 });

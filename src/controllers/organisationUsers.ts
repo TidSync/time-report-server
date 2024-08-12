@@ -72,9 +72,9 @@ export const inviteUserToOrganisation = async (req: Request, res: Response) => {
     );
   }
 
-  const organisation = await organisationModel.getOrganisation(validatedBody.organisation_id);
+  const orgData = await organisationModel.getOrganisation(validatedBody.organisation_id);
 
-  if (!organisation) {
+  if (!orgData) {
     throw new HttpException(
       ErrorMessage.ORGANISATION_NOT_FOUND,
       ErrorCode.ORGANISATION_NOT_FOUND,
@@ -90,7 +90,7 @@ export const inviteUserToOrganisation = async (req: Request, res: Response) => {
 
   await sendOrganisationInvitation(
     validatedBody.user_email,
-    organisation.name,
+    orgData.organisation.name,
     validatedBody.organisation_id,
     user.id,
     APP_URL,
@@ -104,7 +104,7 @@ export const confirmOrganisationInvitation = async (req: Request, res: Response)
     req.body,
   );
 
-  const transaction = await organisationModel.confirmOrganisationInvitation(
+  const transaction = await organisationUserModel.confirmOrganisationInvitation(
     user_id,
     organisation_id,
     userData,

@@ -32,7 +32,11 @@ export const updateAddress = async (req: Request, res: Response) => {
     );
   }
 
-  const address = await organisationAddressModel.updateAddress(organisation_address_id, updateData);
+  const address = await organisationAddressModel.updateAddress(
+    organisation_address_id,
+    req.orgUser!.organisation_id,
+    updateData,
+  );
 
   sendResponse(res, address);
 };
@@ -40,7 +44,10 @@ export const updateAddress = async (req: Request, res: Response) => {
 export const deleteAddress = async (req: Request, res: Response) => {
   const validatedBody = DeleteOrganisationAddressSchema.parse(req.body);
 
-  await organisationAddressModel.deleteAddress(validatedBody.organisation_address_id);
+  await organisationAddressModel.deleteAddress(
+    validatedBody.organisation_address_id,
+    req.orgUser!.organisation_id,
+  );
 
   sendResponse(res);
 };
